@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     max_photo_size_mb: int = 10
     max_video_size_mb: int = 50
     max_video_duration_seconds: int = 30
+    
+    # Image quality
+    blur_variance_threshold: float = 100.0
+    # Laplacian variance below this → image is blurry
+    # Calibrated for smartphone civic photos at 1080p
+    # Lower = stricter (more images rejected as blurry)
 
     # Rate Limiting
     rate_limit_anonymous_per_hour: int = 10

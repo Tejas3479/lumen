@@ -265,7 +265,8 @@ async def check_image_blur(file_path: Path) -> tuple[bool, float]:
                 return float(arr.var())
 
         variance = await asyncio.get_event_loop().run_in_executor(None, _compute)
-        is_blurry = variance < 100.0
+        from app.config import settings
+        is_blurry = variance < settings.blur_variance_threshold
         return is_blurry, variance
 
     except Exception:

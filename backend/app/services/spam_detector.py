@@ -47,7 +47,6 @@ _BLOCKED_TERMS: frozenset = frozenset([
 # ── Thresholds ────────────────────────────────────────────────
 ALL_CAPS_THRESHOLD: float = 0.70    # > 70 % uppercase → shouting
 MIN_WORD_COUNT: int = 4             # Combined title + description
-BLUR_VARIANCE_THRESHOLD: float = 80.0  # Laplacian variance below this → blurry
 
 # ── Rate limits (pulled from settings so they're env-overridable) ──
 RATE_LIMIT_USER_PER_HOUR: int = settings.rate_limit_user_per_hour        # default 50
@@ -224,25 +223,18 @@ async def _check_blur(image_path: Optional[str]) -> Tuple[bool, float, str]:
 
     is_blurry, variance = await check_image_blur(full_path)
 
+    from app.config import settings as _settings
     if is_blurry:
-        # Confidence: 1.0 when variance=0, approaching 0.0 as variance→threshold
-        blur_confidence = round(
-            max(0.0, 1.0 - (variance / BLUR_VARIANCE_THRESHOLD)), 2
+        # Confidence: how far below the threshold the variance is (0.0–1.0)
+        confidence = round(
+            max(0.0, 1.0 - (variance / _settings.blur_variance_threshold)), 2
         )
-        reason = (
-            f"The uploaded photo appears too blurry to be useful "
-            f"(clarity score: {round(variance, 1)}, minimum needed: {BLUR_VARIANCE_THRESHOLD}). "
-            "A clearer photo helps officials verify and prioritise the issue faster."
+        return True, confidence, (
+            f"The uploaded image appears too blurry to be useful "
+            f"(clarity score: {round(variance, 1)}, "
+            f"threshold: {_settings.blur_variance_threshold}). "
+            "Please take a clearer photo if possible."
         )
-        logger.info(
-            "Blurry image detected (soft signal)",
-            extra={
-                "image_path": image_path,
-                "variance": round(variance, 2),
-                "blur_confidence": blur_confidence,
-            }
-        )
-        return True, blur_confidence, reason
 
     return False, 0.0, ""
 
