@@ -1,0 +1,104 @@
+# =============================================================
+# Lumen .gitignore
+# =============================================================
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+env/
+ENV/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite / Build output
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+*.local
+frontend/dist-node/
+
+# Media uploads (user content — not committed)
+backend/media/*
+!backend/media/.gitkeep
+
+# Alembic migrations (generated — committed)
+# backend/alembic/versions/*.py  # DO commit migrations
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+*.lcov
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Database files (local SQLite for dev/test)
+*.db
+*.sqlite
+*.sqlite3
+
+# Test artifacts
+.tox/
+
+# Secrets
+*.pem
+*.key
+
+# Database data folders
+backend/pgdata/
+pgdata/
+
