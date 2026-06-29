@@ -39,19 +39,25 @@ def cleanup_guest_users(self):
         cutoff = datetime.now(timezone.utc) - timedelta(days=30)
 
         async with get_celery_session() as db:
-            result = await db.execute(
-                delete(User).where(
-                    User.is_guest == True,  # noqa: E712
-                    User.created_at < cutoff,
+            try:
+                result = await db.execute(
+                    delete(User).where(
+                        User.is_guest == True,  # noqa: E712
+                        User.created_at < cutoff,
+                    )
                 )
-            )
-            count = result.rowcount
-            await db.commit()
-            logger.info(
-                "Guest user cleanup complete",
-                extra={"deleted_count": count, "cutoff": cutoff.isoformat()},
-            )
-            return count
+                count = result.rowcount
+                await db.commit()
+                logger.info("Guest user cleanup complete", deleted=count)
+                return count
+            except Exception as e:
+                await db.rollback()
+                logger.error(
+                    "Guest user cleanup failed — FK constraint violation likely. "
+                    "Verify ondelete=SET NULL is applied to all user FK columns.",
+                    error=str(e),
+                )
+                raise e
 
     try:
         deleted = asyncio.run(_cleanup())

@@ -10,7 +10,7 @@ from typing import Optional, List
 from sqlalchemy import (
     String, Text, Boolean, Float, Integer, DateTime, Date,
     ForeignKey, UniqueConstraint, Index,
-    JSON,
+    JSON, text,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -92,9 +92,9 @@ class User(Base):
     )
     comments: Mapped[List["Comment"]] = relationship("Comment", back_populates="user")
     votes: Mapped[List["Vote"]] = relationship("Vote", back_populates="user")
-    badges: Mapped[List["UserBadge"]] = relationship("UserBadge", back_populates="user")
+    badges: Mapped[List["UserBadge"]] = relationship("UserBadge", back_populates="user", cascade="all, delete-orphan")
     points_log: Mapped[List["LeaderboardPoints"]] = relationship(
-        "LeaderboardPoints", back_populates="user"
+        "LeaderboardPoints", back_populates="user", cascade="all, delete-orphan"
     )
     resolution_feedbacks: Mapped[List["ResolutionFeedback"]] = relationship(
         "ResolutionFeedback", back_populates="submitter"
@@ -131,12 +131,12 @@ class Issue(Base):
     is_emergency: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Reporter — nullable for anonymous
     reporter_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     guest_session_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     # Assignment
     assigned_to: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     # Location
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
@@ -265,7 +265,7 @@ class StatusHistory(Base):
     from_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     to_status: Mapped[str] = mapped_column(String(32), nullable=False)
     changed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -295,8 +295,8 @@ class Verification(Base):
     issue_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     verification_type: Mapped[str] = mapped_column(String(16), nullable=False)  # hard/soft
     distance_meters: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -309,10 +309,15 @@ class Verification(Base):
     )
 
     issue: Mapped["Issue"] = relationship("Issue", back_populates="verifications")
-    user: Mapped["User"] = relationship("User", back_populates="verifications")
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="verifications")
 
     __table_args__ = (
-        UniqueConstraint("issue_id", "user_id", name="uq_verification_issue_user"),
+        Index(
+            "ix_verif_issue_user_unique",
+            "issue_id", "user_id",
+            unique=True,
+            postgresql_where=text("user_id IS NOT NULL"),
+        ),
         Index("ix_verifications_issue_id", "issue_id"),
     )
 
@@ -330,7 +335,7 @@ class Comment(Base):
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
     user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     parent_comment_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("comments.id"), nullable=True
@@ -370,7 +375,7 @@ class Vote(Base):
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
     user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     guest_session_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     vote_type: Mapped[str] = mapped_column(String(16), nullable=False, default="support")
@@ -404,14 +409,14 @@ class Flag(Base):
     issue_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
-    flagged_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    flagged_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     reason: Mapped[str] = mapped_column(String(32), nullable=False)
     detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     reviewed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -421,7 +426,7 @@ class Flag(Base):
     )
 
     issue: Mapped["Issue"] = relationship("Issue", back_populates="flags")
-    reporter: Mapped["User"] = relationship("User", foreign_keys=[flagged_by])
+    reporter: Mapped[Optional["User"]] = relationship("User", foreign_keys=[flagged_by])
     reviewer: Mapped[Optional["User"]] = relationship("User", foreign_keys=[reviewed_by])
 
     __table_args__ = (
@@ -462,7 +467,7 @@ class UserBadge(Base):
         UUID(as_uuid=True), primary_key=True, default=new_uuid
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     badge_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("badges.id"), nullable=False
@@ -489,7 +494,7 @@ class LeaderboardPoints(Base):
         UUID(as_uuid=True), primary_key=True, default=new_uuid
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     action: Mapped[str] = mapped_column(String(64), nullable=False)
     points: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -549,7 +554,7 @@ class ResolutionFeedback(Base):
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
     submitted_by: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     is_resolved: Mapped[bool] = mapped_column(Boolean, nullable=False)
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -621,7 +626,7 @@ class IssueAuditLog(Base):
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
     actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     action: Mapped[str] = mapped_column(String(64), nullable=False)
     before_state: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
@@ -653,11 +658,11 @@ class Assignment(Base):
     issue_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"), nullable=False
     )
-    assigned_to: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    assigned_to: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    assigned_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    assigned_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     department: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
@@ -668,8 +673,8 @@ class Assignment(Base):
     )
 
     issue: Mapped["Issue"] = relationship("Issue", back_populates="assignments")
-    assignee: Mapped["User"] = relationship("User", foreign_keys=[assigned_to])
-    assigner: Mapped["User"] = relationship("User", foreign_keys=[assigned_by])
+    assignee: Mapped[Optional["User"]] = relationship("User", foreign_keys=[assigned_to])
+    assigner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[assigned_by])
 
     __table_args__ = (
         Index("ix_assignments_issue_id", "issue_id"),
