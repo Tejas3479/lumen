@@ -320,22 +320,30 @@ export default function AdminIssueQueue({ onIssueSelect }: Props) {
                     {' '}· {issue.verification_count} verified
                   </div>
                   {triageReports[issue.id] && (
-                    <div
-                      className="flex items-center gap-1.5 mt-1"
-                      title={triageReports[issue.id].recommendation_summary}
-                      aria-label={`AI recommends: ${triageReports[issue.id].recommended_action.replace('_', ' ')}`}
-                    >
-                      <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-medium">
-                        🤖 {triageReports[issue.id].recommended_department}
-                      </span>
-                      <span className={`text-[10px] font-bold ${
-                        triageReports[issue.id].recommended_priority <= 2 ? 'text-red-600 dark:text-red-400' :
-                        triageReports[issue.id].recommended_priority <= 4 ? 'text-orange-500 dark:text-orange-400' :
-                        'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        P{triageReports[issue.id].recommended_priority}
-                      </span>
-                    </div>
+                    <details className="mt-1">
+                      <summary
+                        className="flex items-center gap-1.5 cursor-pointer list-none"
+                        aria-label={`AI triage: ${triageReports[issue.id].recommended_action.replace('_', ' ')} — click to see reasoning`}
+                      >
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                          🤖 {triageReports[issue.id].recommended_department}
+                        </span>
+                        <span className={`text-xs font-bold ${
+                          triageReports[issue.id].recommended_priority <= 2 ? 'text-red-600' :
+                          triageReports[issue.id].recommended_priority <= 4 ? 'text-orange-500' :
+                          'text-gray-400'
+                        }`}>
+                          P{triageReports[issue.id].recommended_priority}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {triageReports[issue.id].recommended_action.replace(/_/g, ' ')}
+                        </span>
+                      </summary>
+                      <div className="mt-1.5 ml-1 text-xs text-gray-600 bg-purple-50 rounded-lg px-3 py-2 border-l-2 border-purple-300">
+                        <span className="font-medium text-purple-700">AI reasoning: </span>
+                        {triageReports[issue.id].recommendation_summary}
+                      </div>
+                    </details>
                   )}
                 </div>
 

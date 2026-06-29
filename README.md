@@ -44,6 +44,25 @@ chmod +x start.sh
 
 ---
 
+## 👨‍⚖️ For Hackathon Judges
+
+Open: **http://your-deployment-url/?judge=true**
+
+The guided feature tour will start automatically, walking you through:
+1. 📸 AI-powered issue reporting (Google Gemini)
+2. 🤖 Autonomous Triage Agent (Gemini Function Calling)
+3. ✓ Community verification system
+4. 📶 Offline-first PWA
+5. 🛡️ Admin dashboard with AI recommendations
+
+**AI Agents status:** GET /ai/agents/status  
+**Admin login:** admin@lumen.civic / admin123  
+**Citizen login:** priya@example.com / citizen123  
+
+To restart the tour: add ?judge=true to any URL.
+
+---
+
 ## What You Can Demo
 
 1. **Report an issue** — tap the FAB, take a photo, confirm location, submit

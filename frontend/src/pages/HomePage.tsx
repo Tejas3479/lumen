@@ -19,6 +19,7 @@ import MobileBottomNav from '@/components/MobileBottomNav';
 import OfflineSyncBanner from '@/components/OfflineSyncBanner';
 import ThemeToggle from '@/components/ThemeToggle';
 import OnboardingTour from '@/components/OnboardingTour';
+import AboutDemoModal from '@/components/AboutDemoModal';
 
 import { useIssuesApi } from '@/hooks/useApi';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -47,6 +48,7 @@ export default function HomePage() {
   const [feedView, setFeedView] = useState<FeedView>('map');
   const [feedOpen, setFeedOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   // Restore session on mount
   useEffect(() => {
@@ -73,6 +75,18 @@ export default function HomePage() {
       fetchNearby(12.9716, 77.5946, 5000); // Bengaluru
     }
   }, [location?.latitude, location?.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === 'true') {
+      // Auto-open the first emergency issue for demo mode
+      const emergencyIssue = nearbyIssues.find((i) => i.is_emergency);
+      if (emergencyIssue) {
+        // Simulate clicking the first emergency marker
+        setTimeout(() => setSelectedIssue(emergencyIssue), 2000);
+      }
+    }
+  }, [nearbyIssues]);
 
   const handleMarkerClick = useCallback((issue: Issue) => {
     setSelectedIssue(issue);
@@ -121,6 +135,15 @@ export default function HomePage() {
           <div className="glass rounded-2xl shadow-lg">
             <ThemeToggle />
           </div>
+
+          {/* About Demo button */}
+          <button
+            onClick={() => setAboutOpen(true)}
+            className="glass px-3 py-2 rounded-2xl shadow-lg border border-white/20 dark:border-slate-700/50 pointer-events-auto text-xs font-bold text-slate-800 dark:text-slate-100 hover:text-primary-650 dark:hover:text-primary-400 bg-white/95 dark:bg-slate-900/95 transition-colors flex items-center justify-center whitespace-nowrap"
+            aria-label="About this demo"
+          >
+            ℹ️ Demo Info
+          </button>
         </div>
 
         {/* Map / List toggle */}
@@ -234,6 +257,11 @@ export default function HomePage() {
       <MobileBottomNav />
 
       {/* ── Modals & Sheets ── */}
+      <AboutDemoModal
+        isOpen={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+      />
+
       <ReportIssueModal
         isOpen={reportOpen}
         onClose={() => setReportOpen(false)}

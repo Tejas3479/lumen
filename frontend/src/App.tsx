@@ -6,6 +6,7 @@ import { useSocket } from '@/hooks/useSocket';
 // Global passive components
 import GamificationToast from '@/components/GamificationToast';
 import OfflineSyncBanner from '@/components/OfflineSyncBanner';
+import LiveAIIndicator from '@/components/LiveAIIndicator';
 
 // Pages
 import HomePage from '@/pages/HomePage';
@@ -32,6 +33,31 @@ function AppContent() {
 
       {/* Passive gamification toast listener */}
       <GamificationToast />
+
+      {/* Thin header bar above routes */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-red-600">Lumen</span>
+          <span className="text-xs text-gray-400 hidden sm:inline">Community Hero</span>
+          {new URLSearchParams(window.location.search).get('demo') === 'true' && (
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+              Demo Mode
+            </span>
+          )}
+        </div>
+        <LiveAIIndicator />
+        <button
+          onClick={() => {
+            // Reset tour for judges
+            localStorage.removeItem('lumen_tour_v2_complete');
+            window.location.href = '/?judge=true';
+          }}
+          className="text-xs text-gray-400 hover:text-blue-600"
+          aria-label="Restart feature tour"
+        >
+          Tour
+        </button>
+      </div>
 
       <Routes>
         <Route path="/"             element={<HomePage />} />

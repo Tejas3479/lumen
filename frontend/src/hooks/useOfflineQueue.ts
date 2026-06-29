@@ -281,7 +281,6 @@ export function useOfflineQueue() {
     queue: useAppStore.getState().pendingDrafts,
     queueCount: offlineQueueCount,
     addToQueue: saveDraft,
-    syncQueue,
     clearQueue: () => { /* handled per-draft */ },
 
     // Full API

@@ -1,158 +1,237 @@
-/**
- * OnboardingTour — 3-step guided tour for first-time users.
- * Shown automatically after 1.2s on first visit (localStorage gate).
- * Fully accessible: role="dialog", aria-modal, aria-live, focus management.
- */
-import { useState, useEffect } from 'react';
-import { X, MapPin, Camera, CheckCircle, ChevronRight, ShieldAlert, Wifi } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, MapPin, Camera, CheckCircle, Bot, Shield, Wifi, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface TourStep {
+  id: string;
   title: string;
   description: string;
   icon: React.ElementType;
   iconColor: string;
+  highlight?: string;         // CSS selector of element to highlight
+  action?: {                  // Optional auto-navigation
+    label: string;
+    href: string;
+  };
+  judgeNote?: string;         // Italic note for judges: "Watch for..."
 }
 
-const TOUR_STEPS: TourStep[] = [
+const JUDGE_TOUR_STEPS: TourStep[] = [
   {
-    title: "See what's happening nearby",
-    description:
-      'The map shows all reported infrastructure issues in your area. Tap any marker to see details.',
-    icon: MapPin,
-    iconColor: 'text-blue-500',
-  },
-  {
-    title: 'Report an issue in 60 seconds',
-    description:
-      'Tap the red button to report a pothole, water leak, broken light, or garbage. Add a photo for faster action.',
+    id: 'report',
+    title: 'Report in 60 seconds',
+    description: 'Tap the red Report Issue button. Take a photo. The AI categorizes it automatically using Google Gemini.',
     icon: Camera,
     iconColor: 'text-red-500',
+    judgeNote: 'Watch for: AI category + severity + reasoning appear within 5 seconds of submission.',
   },
   {
-    title: 'Verify and track together',
-    description:
-      'Confirm issues reported by your neighbours. Watch as officials respond and track progress in real time.',
+    id: 'ai',
+    title: 'Google Gemini AI Analysis',
+    description: 'After submitting, open any issue. The blue "AI detected" card shows Gemini\'s category, confidence, reasoning, and alternative categories considered.',
+    icon: Bot,
+    iconColor: 'text-blue-500',
+    judgeNote: 'Watch for: "See AI reasoning" expander showing step-by-step Gemini chain-of-thought.',
+  },
+  {
+    id: 'agents',
+    title: '3 Autonomous AI Agents',
+    description: 'Lumen runs agents that work without any human trigger. The Triage Agent reasons about every new issue. The Escalation Agent detects stalled issues every 30 minutes.',
+    icon: Shield,
+    iconColor: 'text-purple-500',
+    action: { label: 'See agent status →', href: '/api/ai/agents/status' },
+    judgeNote: 'Watch for: Admin queue shows 🤖 department badge + priority on each issue.',
+  },
+  {
+    id: 'verify',
+    title: 'Community Verification',
+    description: 'Citizens verify issues with "I\'m here now" (GPS-checked) or "I know this exists" (no GPS needed). 2 hard verifications auto-upgrade status to Verified.',
     icon: CheckCircle,
     iconColor: 'text-green-500',
+    judgeNote: 'Watch for: Verification count badge updates in real-time without page refresh.',
   },
   {
-    title: 'Offline-First Capabilities',
-    description:
-      'Lumen works completely offline. Drafts are securely cached in IndexedDB and sync automatically when your internet connection is restored.',
+    id: 'offline',
+    title: 'Works Offline',
+    description: 'Open DevTools → Network → Offline. Try submitting a report. It saves to IndexedDB. Go back online — it syncs automatically.',
     icon: Wifi,
     iconColor: 'text-amber-500',
+    judgeNote: 'Watch for: Amber banner shows pending count. Disappears when sync completes.',
   },
   {
-    title: 'Admin Verification & Moderation',
-    description:
-      'Admins can log in to moderate reports, view AI-driven triaged categories, coordinate municipal responses, and monitor real-time ward analytics.',
-    icon: ShieldAlert,
-    iconColor: 'text-purple-500',
+    id: 'admin',
+    title: 'Admin Dashboard',
+    description: 'Login as admin@lumen.civic / admin123. The queue shows AI triage recommendations on every issue. Change a status — the timeline updates live in the citizen view.',
+    icon: Shield,
+    iconColor: 'text-gray-700',
+    action: { label: 'Open admin →', href: '/admin' },
+    judgeNote: 'Watch for: Status change in admin → instant timeline update in issue detail (WebSocket).',
   },
 ];
 
-const STORAGE_KEY = 'lumen_onboarding_complete';
+const STORAGE_KEY = 'lumen_tour_v2_complete';
 
 export default function OnboardingTour() {
   const [isVisible, setIsVisible] = useState(false);
   const [step, setStep] = useState(0);
+  const [isJudgeMode, setIsJudgeMode] = useState(false);
 
   useEffect(() => {
+    // Check for ?demo=true or ?judge=true URL params
+    const params = new URLSearchParams(window.location.search);
+    const forceShow = params.get('demo') === 'true' || params.get('judge') === 'true';
     const done = localStorage.getItem(STORAGE_KEY);
-    if (!done) {
-      // Delay slightly so map loads first
-      const timer = setTimeout(() => setIsVisible(true), 1200);
+
+    if (forceShow) {
+      setIsJudgeMode(true);
+      setIsVisible(true);
+      setStep(0);
+    } else if (!done) {
+      const timer = setTimeout(() => setIsVisible(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     setIsVisible(false);
     localStorage.setItem(STORAGE_KEY, 'true');
-  };
+  }, []);
 
-  const next = () => {
-    if (step < TOUR_STEPS.length - 1) {
+  const next = useCallback(() => {
+    if (step < JUDGE_TOUR_STEPS.length - 1) {
       setStep((s) => s + 1);
     } else {
       dismiss();
     }
-  };
+  }, [step, dismiss]);
+
+  const prev = useCallback(() => {
+    if (step > 0) setStep((s) => s - 1);
+  }, [step]);
 
   if (!isVisible) return null;
 
-  const current = TOUR_STEPS[step];
+  const current = JUDGE_TOUR_STEPS[step];
   const { icon: Icon } = current;
 
   return (
     <>
-      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-50"
+        className="fixed inset-0 bg-black/50 z-50"
         onClick={dismiss}
         aria-hidden="true"
       />
 
-      {/* Tour card */}
       <div
-        className="fixed bottom-20 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-6"
+        className="fixed bottom-20 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl overflow-hidden"
         role="dialog"
         aria-modal="true"
-        aria-label={`Onboarding tour step ${step + 1} of ${TOUR_STEPS.length}`}
+        aria-label={`Feature tour step ${step + 1} of ${JUDGE_TOUR_STEPS.length}: ${current.title}`}
         aria-live="polite"
+        style={{ maxWidth: '480px', margin: '0 auto' }}
       >
-        {/* Close */}
-        <button
-          onClick={dismiss}
-          className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100"
-          aria-label="Skip tour"
-        >
-          <X size={18} className="text-gray-400" aria-hidden="true" />
-        </button>
-
-        {/* Step dots */}
-        <div className="flex gap-1.5 mb-4" role="group" aria-label="Tour progress">
-          {TOUR_STEPS.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === step ? 'w-6 bg-blue-600' : 'w-1.5 bg-gray-200'
-              }`}
-              aria-current={i === step ? 'step' : undefined}
-            />
-          ))}
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-100">
+          <div
+            className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+            style={{ width: `${((step + 1) / JUDGE_TOUR_STEPS.length) * 100}%` }}
+            aria-hidden="true"
+          />
         </div>
 
-        {/* Icon + Title */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center flex-shrink-0">
-            <Icon size={24} className={current.iconColor} aria-hidden="true" />
+        <div className="p-5">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center flex-shrink-0">
+                <Icon size={20} className={current.iconColor} aria-hidden="true" />
+              </div>
+              <div>
+                <div className="text-xs text-gray-400 font-medium">
+                  {step + 1} of {JUDGE_TOUR_STEPS.length}
+                </div>
+                <h2 className="text-base font-bold text-gray-900">{current.title}</h2>
+              </div>
+            </div>
+            <button
+              onClick={dismiss}
+              className="p-1.5 rounded-full hover:bg-gray-100 flex-shrink-0"
+              aria-label="Close tour"
+            >
+              <X size={16} className="text-gray-400" />
+            </button>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-gray-900">{current.title}</h2>
+
+          {/* Description */}
+          <p className="text-sm text-gray-600 leading-relaxed mb-3">
+            {current.description}
+          </p>
+
+          {/* Judge note */}
+          {current.judgeNote && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4">
+              <p className="text-xs text-amber-800 italic">
+                <span className="font-semibold not-italic">👀 Look for: </span>
+                {current.judgeNote}
+              </p>
+            </div>
+          )}
+
+          {/* Optional action link */}
+          {current.action && (
+            <a
+              href={current.action.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium mb-4 hover:underline"
+              aria-label={current.action.label}
+            >
+              {current.action.label}
+            </a>
+          )}
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={prev}
+              disabled={step === 0}
+              className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-0"
+              aria-label="Previous feature"
+            >
+              <ChevronLeft size={16} />
+              Back
+            </button>
+
+            {/* Dot indicators */}
+            <div className="flex gap-1" aria-hidden="true">
+              {JUDGE_TOUR_STEPS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setStep(i)}
+                  className={`rounded-full transition-all ${
+                    i === step ? 'w-4 h-1.5 bg-blue-600' : 'w-1.5 h-1.5 bg-gray-300'
+                  }`}
+                  aria-label={`Go to step ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={next}
+              className="flex items-center gap-1 bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700"
+              aria-label={step < JUDGE_TOUR_STEPS.length - 1 ? 'Next feature' : 'Start exploring'}
+            >
+              {step < JUDGE_TOUR_STEPS.length - 1 ? 'Next' : 'Explore'}
+              <ChevronRight size={14} />
+            </button>
           </div>
-        </div>
 
-        <p className="text-sm text-gray-600 leading-relaxed mb-5">
-          {current.description}
-        </p>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
+          {/* Skip option */}
           <button
             onClick={dismiss}
-            className="text-sm text-gray-400 hover:text-gray-600"
-            aria-label="Skip the tour"
+            className="w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-3"
+            aria-label="Skip the feature tour"
           >
             Skip tour
-          </button>
-          <button
-            onClick={next}
-            className="flex items-center gap-2 bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors"
-            aria-label={step < TOUR_STEPS.length - 1 ? 'Next step' : 'Finish tour'}
-          >
-            {step < TOUR_STEPS.length - 1 ? 'Next' : 'Get started'}
-            <ChevronRight size={16} aria-hidden="true" />
           </button>
         </div>
       </div>

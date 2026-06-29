@@ -78,6 +78,7 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -321,7 +322,11 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
       addIssue(response.data);
       toast.success('Report submitted! Your issue is now live on the map. 📍');
       setIsSubmitting(false);
-      onClose();
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        onClose();
+      }, 2500);
     } catch (err: any) {
       setIsSubmitting(false);
 
@@ -373,8 +378,39 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
       <div className="relative w-full sm:max-w-lg sm:mx-4 bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh]"
            style={{ animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-slate-100 dark:bg-slate-800 rounded-t-3xl sm:rounded-t-3xl overflow-hidden">
+        {isSuccess ? (
+          <div
+            className="flex flex-col items-center justify-center py-12 px-6 text-center"
+            role="status"
+            aria-live="assertive"
+            aria-label="Report submitted successfully"
+          >
+            {/* Animated checkmark */}
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg viewBox="0 0 24 24" className="w-10 h-10 text-green-500" fill="none">
+                <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="2" />
+                <path
+                  d="M7 12l3.5 3.5 6.5-7"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="animate-dash"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Report is live! ✓</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Your issue is now on the community map.
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
+              🤖 Google Gemini is analysing your photo…
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Progress bar */}
+            <div className="h-1 bg-slate-100 dark:bg-slate-800 rounded-t-3xl sm:rounded-t-3xl overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-primary-500 to-violet-500 transition-all duration-500"
             style={{ width: `${(step / 3) * 100}%` }}
@@ -842,6 +878,8 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
             </p>
           )}
         </div>
+        </>
+        )}
       </div>
 
       <style>{`

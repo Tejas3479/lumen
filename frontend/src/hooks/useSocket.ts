@@ -205,6 +205,7 @@ export function useSocket() {
         ai_reasoning:   data.ai_reasoning,
         ai_alternatives: data.ai_alternatives,
       });
+      window.dispatchEvent(new CustomEvent('lumen:ai_result', { detail: data }));
       // Toast if the user is currently viewing this issue
       const selected = useIssueStore.getState().selectedIssue;
       if (selected?.id === data.issue_id) {
