@@ -194,6 +194,27 @@ async def _generate_all_ward_reports():
                 by_category = {row[0] or "other": row[1] for row in cat_result.all()}
                 top_category = max(by_category, key=by_category.get) if by_category else "other"
 
+                # Real average resolution time for this ward (last 90 days)
+                from sqlalchemy import text as sa_text
+                avg_days_result = await db.execute(
+                    sa_text(
+                        """
+                        SELECT AVG(
+                            EXTRACT(EPOCH FROM (resolved_at - created_at)) / 86400.0
+                        )
+                        FROM issues
+                        WHERE ward = :ward
+                          AND status = 'resolved'
+                          AND resolved_at IS NOT NULL
+                          AND created_at >= NOW() - INTERVAL '90 days'
+                        """
+                    ),
+                    {"ward": ward}
+                )
+                avg_resolution_days_raw = avg_days_result.scalar_one()
+                avg_resolution_days = round(avg_resolution_days_raw, 1) if avg_resolution_days_raw else None
+                avg_days_display = f"{avg_resolution_days} days" if avg_resolution_days else "data pending"
+
                 stats = {
                     "week_label": week_start.strftime("%B %d"),
                     "new_issues": new_issues,
@@ -202,7 +223,8 @@ async def _generate_all_ward_reports():
                     "emergency_issues": emergency_issues,
                     "by_category": by_category,
                     "top_category": top_category,
-                    "avg_resolution_days": 5.0,  # Simplified for now
+                    "avg_resolution_days": avg_days_display,  # Real value or "data pending"
+                    "avg_resolution_days_numeric": avg_resolution_days,  # For numeric comparisons
                 }
 
                 # Generate narrative
