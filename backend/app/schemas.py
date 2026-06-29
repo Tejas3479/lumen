@@ -120,9 +120,11 @@ class StatusHistoryOut(LumenBase):
 class VerificationOut(LumenBase):
     id: uuid.UUID
     issue_id: uuid.UUID
-    user_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
     verification_type: str
     distance_meters: Optional[float] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     comment: Optional[str] = None
     trust_weight: float
     created_at: datetime
@@ -130,8 +132,8 @@ class VerificationOut(LumenBase):
 
 class VerifyRequest(BaseModel):
     verification_type: str = Field(..., pattern="^(hard|soft)$")
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     comment: Optional[str] = Field(None, max_length=500)
 
 
@@ -285,27 +287,6 @@ class PaginatedIssues(BaseModel):
     pages: int
 
 
-# ── Verification ──────────────────────────────────────────────
-class VerifyRequest(BaseModel):
-    verification_type: str = Field(..., pattern="^(hard|soft)$")
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    comment: Optional[str] = Field(None, max_length=500)
-
-
-class VerificationOut(LumenBase):
-    id: uuid.UUID
-    issue_id: uuid.UUID
-    user_id: uuid.UUID
-    verification_type: str
-    distance_meters: Optional[float] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    comment: Optional[str] = None
-    trust_weight: float
-    created_at: datetime
-
-
 # ── AI ────────────────────────────────────────────────────────
 class AIResultOut(BaseModel):
     issue_id: uuid.UUID
@@ -349,7 +330,8 @@ class GamificationEvent(BaseModel):
     new_level: Optional[int] = None
 
 
-class LeaderboardEntry(BaseModel):
+class LeaderboardEntry(LumenBase):
+    """A single entry in the gamification leaderboard."""
     rank: int
     user_id: uuid.UUID
     display_name: str
@@ -358,6 +340,7 @@ class LeaderboardEntry(BaseModel):
     level: int
     badge_count: int
     issues_resolved_count: int
+    streak_days: int
 
 
 # ── Analytics ─────────────────────────────────────────────────
@@ -450,78 +433,6 @@ class UserSettingsUpdate(BaseModel):
     is_anonymous_default: Optional[bool] = None
     privacy_settings: Optional[Dict[str, Any]] = None
     notification_preferences: Optional[Dict[str, Any]] = None
-
-
-# ── Admin Schemas ─────────────────────────────────────────────
-
-class AdminBulkUpdate(BaseModel):
-    """Bulk status update for multiple issues."""
-    issue_ids: List[uuid.UUID]
-    status: str
-    note: Optional[str] = Field(None, max_length=500)
-
-
-class AdminUserModerate(BaseModel):
-    """Moderate a user: ban/unban, set official status, assign dept."""
-    is_banned: Optional[bool] = None
-    is_official: Optional[bool] = None
-    department: Optional[str] = Field(None, max_length=128)
-
-
-class FlagReviewRequest(BaseModel):
-    """Review a moderation flag."""
-    status: str  # 'reviewed' | 'dismissed'
-    note: Optional[str] = Field(None, max_length=500)
-
-
-# ── Analytics Schemas ─────────────────────────────────────────
-
-class DashboardStats(BaseModel):
-    """Aggregate impact dashboard statistics."""
-    total_issues: int
-    resolved_this_month: int
-    resolution_rate: float
-    avg_resolution_days: float
-    issues_by_category: Dict[str, int]
-    issues_by_status: Dict[str, int]
-    top_wards: List[Dict[str, Any]]
-
-
-class ETAResponse(BaseModel):
-    """Estimated resolution time for a specific issue."""
-    issue_id: uuid.UUID
-    estimated_days: float
-    estimated_resolution_date: str
-    confidence: str  # 'high' | 'medium' | 'low'
-    basis: str
-
-
-class HotspotOut(LumenBase):
-    """A predicted geographic issue hotspot."""
-    id: uuid.UUID
-    category: str
-    center_latitude: float
-    center_longitude: float
-    radius_meters: float
-    issue_count: int
-    predicted_next_issue_date: Optional[date] = None
-    confidence: float
-    ward: Optional[str] = None
-
-
-# ── Gamification Schemas ──────────────────────────────────────
-
-class LeaderboardEntry(LumenBase):
-    """A single entry in the gamification leaderboard."""
-    rank: int
-    user_id: uuid.UUID
-    display_name: str
-    pseudonym: Optional[str] = None
-    points: int
-    level: int
-    badge_count: int
-    issues_resolved_count: int
-    streak_days: int
 
 
 class TriageReportOut(LumenBase):
