@@ -104,8 +104,8 @@ export const useAppStore = create<AppState>()(
           return { fontSizeClass: size };
         }),
 
-      // Map defaults — Mumbai, India
-      mapCenter: [19.076, 72.8777],
+      // Map defaults — Bengaluru, India
+      mapCenter: [12.9716, 77.5946],
       mapZoom: 13,
       setMapCenter: (center) => set({ mapCenter: center }),
       setMapZoom: (zoom) => set({ mapZoom: zoom }),

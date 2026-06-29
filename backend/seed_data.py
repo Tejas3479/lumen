@@ -221,7 +221,7 @@ def build_issues(cats: dict, users: dict) -> list[dict]:
     official = users["official"]
     admin = users["admin"]
 
-    return [
+    issues = [
         # ──── CLUSTER A: Andheri West — Potholes (5 issues) ────
         {
             "title": "Giant pothole on SV Road near Lokhandwala",
@@ -1129,6 +1129,146 @@ def build_issues(cats: dict, users: dict) -> list[dict]:
         },
     ]
 
+    WARD_MAP = {
+        "K/West": "Koramangala",
+        "K/East": "Koramangala",
+        "H/East": "Indiranagar",
+        "H/West": "HSR Layout",
+        "L": "Jayanagar",
+        "M/East": "Whitefield",
+        "N": "Malleshwaram",
+        "F/North": "Richmond Town",
+        "G/North": "BTM Layout",
+        "S": "Yelahanka",
+        "D": "Basavanagudi",
+        "A": "Hebbal",
+        "G/South": "Ulsoor",
+        "E": "Domlur",
+    }
+    ZONE_MAP = {
+        "Western Suburbs": "South-East Zone",
+        "Eastern Suburbs": "East Zone",
+        "Central": "Central Zone",
+        "South Mumbai": "South Zone",
+    }
+    ADDRESS_REPLACEMENTS = {
+        "SV Road, Lokhandwala Circle, Andheri West": "80 Feet Road, Koramangala, Bengaluru",
+        "SV Road near Om Nagar, Andheri West": "80 Feet Road, Koramangala, Bengaluru",
+        "SV Road": "80 Feet Road, Koramangala",
+        "Andheri Link Road, near D-Mart, Andheri West": "100 Feet Road, Indiranagar, Bengaluru",
+        "Andheri Link Road": "100 Feet Road, Indiranagar",
+        "Near Versova Bus Depot, Andheri West": "Near Koramangala Bus Depot, Bengaluru",
+        "Versova Bus Depot": "Koramangala Bus Depot",
+        "Versova": "Koramangala",
+        "Andheri West": "Koramangala, Bengaluru",
+        "BKC Road, Gate 4 approach, Bandra East": "100 Feet Road, Indiranagar, Bengaluru",
+        "BKC Road": "100 Feet Road",
+        "BKC": "Indiranagar",
+        "Bandra East": "Indiranagar, Bengaluru",
+        "Near Kurla Market, LBS Road, Kurla": "Near Jayanagar 4th Block Market, Bengaluru",
+        "Kurla Market": "Jayanagar Market",
+        "Kurla": "Jayanagar",
+        "Dharavi Road between bridges, Dharavi": "Hosur Road, Richmond Town, Bengaluru",
+        "Dharavi Road": "Hosur Road",
+        "Dharavi": "Richmond Town",
+        "Hill Road, Bandra West": "HSR Layout Sector 1, Bengaluru",
+        "Hill Road": "HSR Layout Sector 1",
+        "Bandra West": "HSR Layout, Bengaluru",
+        "Carter Road Roundabout, Bandra West": "HSR Layout Sector 3, Bengaluru",
+        "Carter Road Roundabout": "HSR Layout Sector 3",
+        "Carter Road": "HSR Layout Sector 3",
+        "Behind Chembur Railway Station, Chembur": "Behind Whitefield Railway Station, Bengaluru",
+        "Chembur Railway Station": "Whitefield Railway Station",
+        "Chembur Station": "Whitefield Station",
+        "Chembur": "Whitefield",
+        "Sahakar Nagar, Ghatkopar East": "Malleshwaram East, Bengaluru",
+        "Sahakar Nagar": "Malleshwaram East",
+        "Ghatkopar East": "Malleshwaram East, Bengaluru",
+        "Ghatkopar": "Malleshwaram",
+        "NC Kelkar Road, Dadar West": "BTM Layout 2nd Stage, Bengaluru",
+        "NC Kelkar Road": "BTM Layout 2nd Stage",
+        "Dadar West": "BTM Layout",
+        "Dadar": "BTM Layout",
+        "Near Transit Camp, Govandi East": "Near Whitefield East, Bengaluru",
+        "Govandi East": "Whitefield East",
+        "Govandi": "Whitefield",
+        "Juhu Beach, Juhu": "Ulsoor Lake, Ulsoor, Bengaluru",
+        "Juhu Beach": "Ulsoor Lake",
+        "Juhu": "Ulsoor",
+        "MG Road, between Vile Parle Station and flyover": "MG Road, Domlur, Bengaluru",
+        "Vile Parle Station": "Domlur Flyover",
+        "Vile Parle": "Domlur",
+        "Outside Mulund Police Chowky, Mulund West": "Outside Yelahanka Police Chowky, Bengaluru",
+        "Mulund West": "Yelahanka",
+        "Mulund": "Yelahanka",
+        "Linking Road near Shoppers Stop, Bandra West": "HSR Layout Sector 2, Bengaluru",
+        "Linking Road": "HSR Layout Sector 2",
+        "Matunga": "Richmond Town",
+        "Outside Huma Mall Fire Exit, Kanjurmarg West": "Outside Hebbal West, Bengaluru",
+        "Kanjurmarg West": "Hebbal West",
+        "Kanjurmarg": "Hebbal",
+        "Peddar Road, near Kemp's Corner, Mumbai South": "MG Road, near Brigade Road, Bengaluru",
+        "Peddar Road": "MG Road",
+        "Mumbai South": "South Zone, Bengaluru",
+        "Worli Sea Face Road near St. Xavier's School": "Ulsoor Lake Road, Bengaluru",
+        "Worli Sea Face": "Ulsoor Lake Road",
+        "Worli": "Ulsoor",
+        "Altamount Road near Napeansea Road junction": "Basavanagudi, Bengaluru",
+        "Altamount Road": "Basavanagudi",
+        "Shivaji Park Municipal School wall, Dadar West": "BTM Layout Park, Bengaluru",
+        "Shivaji Park": "BTM Layout Park",
+        "Father Agnel Road, Mahim": "Domlur, Bengaluru",
+        "Mahim": "Domlur",
+        "WEH Bus Stop near Andheri Station, Andheri East": "Silk Board Bus Stop, Bengaluru",
+        "WEH Bus Stop": "Silk Board Bus Stop",
+        "WEH": "Silk Board",
+        "Andheri East": "Koramangala, Bengaluru",
+        "Andheri": "Koramangala",
+        "Mumbai": "Bengaluru",
+        "MCGM": "BBMP",
+    }
+
+    for issue in issues:
+        # Shift coordinates
+        issue["latitude"] = round(issue["latitude"] - 6.1044, 4)
+        issue["longitude"] = round(issue["longitude"] + 4.7169, 4)
+        
+        # Replace addresses
+        addr = issue.get("address", "")
+        for k, v in ADDRESS_REPLACEMENTS.items():
+            addr = addr.replace(k, v)
+        issue["address"] = addr
+        
+        # Replace wards & zones
+        issue["ward"] = WARD_MAP.get(issue.get("ward"), issue.get("ward"))
+        issue["zone"] = ZONE_MAP.get(issue.get("zone"), issue.get("zone"))
+        
+        # Clean title, description, and transitions notes
+        title = issue.get("title", "")
+        desc = issue.get("description", "")
+        explanation = issue.get("ai_explanation", "")
+        summary = issue.get("ai_summary", "")
+        for k, v in ADDRESS_REPLACEMENTS.items():
+            title = title.replace(k, v)
+            desc = desc.replace(k, v)
+            explanation = explanation.replace(k, v)
+            summary = summary.replace(k, v)
+        issue["title"] = title
+        issue["description"] = desc
+        if "ai_explanation" in issue:
+            issue["ai_explanation"] = explanation
+        if "ai_summary" in issue:
+            issue["ai_summary"] = summary
+            
+        for transition in issue.get("status_transitions", []):
+            note = transition.get("note")
+            if note:
+                for k, v in ADDRESS_REPLACEMENTS.items():
+                    note = note.replace(k, v)
+                transition["note"] = note
+
+    return issues
+
 
 # ──────────────────────────────────────────────────────────────
 # HOTSPOTS (pre-computed for demo)
@@ -1178,6 +1318,29 @@ HOTSPOTS = [
 # ──────────────────────────────────────────────────────────────
 async def seed(session: AsyncSession) -> None:
     print("🌱 Starting Lumen seed data...")
+
+    # Translate HOTSPOTS to Bengaluru
+    WARD_MAP = {
+        "K/West": "Koramangala",
+        "K/East": "Koramangala",
+        "H/East": "Indiranagar",
+        "H/West": "HSR Layout",
+        "L": "Jayanagar",
+        "M/East": "Whitefield",
+        "N": "Malleshwaram",
+        "F/North": "Richmond Town",
+        "G/North": "BTM Layout",
+        "S": "Yelahanka",
+        "D": "Basavanagudi",
+        "A": "Hebbal",
+        "G/South": "Ulsoor",
+        "E": "Domlur",
+    }
+    for h in HOTSPOTS:
+        if h["center_latitude"] > 18.0:
+            h["center_latitude"] = round(h["center_latitude"] - 6.1044, 4)
+            h["center_longitude"] = round(h["center_longitude"] + 4.7169, 4)
+            h["ward"] = WARD_MAP.get(h["ward"], h["ward"])
 
     # ── 1. Categories ──────────────────────────────────────────
     print("  → Seeding categories...")

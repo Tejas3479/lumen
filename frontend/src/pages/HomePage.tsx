@@ -65,10 +65,12 @@ export default function HomePage() {
   // Load offline drafts from IndexedDB on mount (Session 19)
   useEffect(() => { loadDrafts(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Initial nearby fetch when GPS resolves
+  // Initial nearby fetch when GPS resolves, with fallback to Bengaluru
   useEffect(() => {
     if (location?.latitude) {
       fetchNearby(location.latitude, location.longitude, 3000);
+    } else {
+      fetchNearby(12.9716, 77.5946, 5000); // Bengaluru
     }
   }, [location?.latitude, location?.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -153,7 +155,7 @@ export default function HomePage() {
             center={
               location?.latitude !== null && location?.longitude !== null && location?.latitude !== undefined
                 ? [location.latitude, location.longitude]
-                : [-1.2921, 36.8219]
+                : [12.9716, 77.5946]
             }
           />
         </div>
