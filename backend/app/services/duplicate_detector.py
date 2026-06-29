@@ -124,9 +124,9 @@ def _jaccard_similarity(text_a: str, text_b: str) -> float:
 
 async def _get_gemini_embeddings(texts: list[str]) -> list[list[float]] | None:
     """
-    Uses Google's gemini-embedding-001 model for semantic similarity.
+    Uses Google's text-embedding-004 model for semantic similarity.
     Returns list of embedding vectors, or None if unavailable.
-    gemini-embedding-001 produces vectors optimised for English
+    text-embedding-004 produces vectors optimised for English
     and Indian-language text — better than all-MiniLM-L6-v2 for
     Bengaluru civic descriptions.
     """
@@ -136,11 +136,11 @@ async def _get_gemini_embeddings(texts: list[str]) -> list[list[float]] | None:
 
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-embedding-001:batchEmbedContents?key={api_key}"
+        f"text-embedding-004:batchEmbedContents?key={api_key}"
     )
 
     requests = [
-        {"model": "models/gemini-embedding-001", "content": {"parts": [{"text": t}]}}
+        {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
         for t in texts
     ]
 
@@ -161,7 +161,7 @@ async def _get_gemini_embeddings(texts: list[str]) -> list[list[float]] | None:
 async def _compute_similarity(text_a: str, text_b: str) -> float:
     """
     Computes semantic similarity.
-    Priority: Gemini gemini-embedding-001 → sentence-transformers → Jaccard fallback.
+    Priority: Gemini text-embedding-004 → sentence-transformers → Jaccard fallback.
     """
     # Try Gemini embeddings first (Google Technologies)
     embeddings = await _get_gemini_embeddings([text_a, text_b])

@@ -4,7 +4,7 @@
  * Fully accessible: role="dialog", aria-modal, aria-live, focus management.
  */
 import { useState, useEffect } from 'react';
-import { X, MapPin, Camera, CheckCircle, ChevronRight } from 'lucide-react';
+import { X, MapPin, Camera, CheckCircle, ChevronRight, ShieldAlert, Wifi } from 'lucide-react';
 
 interface TourStep {
   title: string;
@@ -34,6 +34,20 @@ const TOUR_STEPS: TourStep[] = [
       'Confirm issues reported by your neighbours. Watch as officials respond and track progress in real time.',
     icon: CheckCircle,
     iconColor: 'text-green-500',
+  },
+  {
+    title: 'Offline-First Capabilities',
+    description:
+      'Lumen works completely offline. Drafts are securely cached in IndexedDB and sync automatically when your internet connection is restored.',
+    icon: Wifi,
+    iconColor: 'text-amber-500',
+  },
+  {
+    title: 'Admin Verification & Moderation',
+    description:
+      'Admins can log in to moderate reports, view AI-driven triaged categories, coordinate municipal responses, and monitor real-time ward analytics.',
+    icon: ShieldAlert,
+    iconColor: 'text-purple-500',
   },
 ];
 

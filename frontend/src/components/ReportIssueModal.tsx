@@ -120,7 +120,7 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
     const initAutocomplete = async () => {
       try {
         const { Loader } = await import('@googlemaps/js-api-loader');
-        const loader = new Loader({ apiKey, version: 'weekly', libraries: ['places'] });
+        const loader = new Loader({ apiKey, version: 'weekly', libraries: ['places'], language: 'kn' });
         const google = await loader.load();
 
         autocomplete = new google.maps.places.Autocomplete(

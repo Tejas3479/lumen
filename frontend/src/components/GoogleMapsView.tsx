@@ -62,6 +62,7 @@ export default function GoogleMapsView({ issues, onIssueSelect, center, zoom = 1
         apiKey,
         version: 'weekly',
         libraries: ['places', 'marker'],
+        language: 'kn',
       });
       const google = await loader.load();
 

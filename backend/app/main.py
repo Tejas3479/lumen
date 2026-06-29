@@ -33,6 +33,38 @@ from app.routes import (
 # Setup structured logging
 setup_logging()
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Lumen API starting", extra={"environment": settings.environment})
+    # Start the Redis pub/sub subscriber as a background task.
+    # This bridges Celery worker events (ai_result, leaderboard_update,
+    # hotspot_update) to connected Socket.IO clients.
+    import asyncio
+    from app.sockets.events import start_redis_subscriber
+    subscriber_task = asyncio.create_task(start_redis_subscriber(settings.redis_url))
+    logger.info("Redis subscriber started")
+
+    # Verify Redis connectivity at startup
+    try:
+        import redis.asyncio as aioredis
+        r = aioredis.from_url(settings.redis_url, socket_connect_timeout=3)
+        await r.ping()
+        await r.aclose()
+        logger.info("Redis connection verified")
+    except Exception as e:
+        logger.warning("Redis unavailable at startup", error=str(e))
+
+    yield
+
+    logger.info("Lumen API shutting down")
+    subscriber_task.cancel()
+    try:
+        await subscriber_task
+    except asyncio.CancelledError:
+        pass
+
 # Create FastAPI app
 app = FastAPI(
     title="Lumen API",
@@ -40,6 +72,7 @@ app = FastAPI(
     version=settings.app_version,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
+    lifespan=lifespan,
 )
 
 # CORS
@@ -221,33 +254,6 @@ async def get_metrics():
         metrics["error"] = str(e)
 
     return metrics
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Lumen API starting", extra={"environment": settings.environment})
-    # Start the Redis pub/sub subscriber as a background task.
-    # This bridges Celery worker events (ai_result, leaderboard_update,
-    # hotspot_update) to connected Socket.IO clients.
-    import asyncio
-    from app.sockets.events import start_redis_subscriber
-    asyncio.create_task(start_redis_subscriber(settings.redis_url))
-    logger.info("Redis subscriber started")
-
-    # Verify Redis connectivity at startup
-    try:
-        import redis.asyncio as aioredis
-        r = aioredis.from_url(settings.redis_url, socket_connect_timeout=3)
-        await r.ping()
-        await r.aclose()
-        logger.info("Redis connection verified")
-    except Exception as e:
-        logger.warning("Redis unavailable at startup", error=str(e))
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Lumen API shutting down")
 
 
 # Wrap FastAPI with Socket.IO ASGI

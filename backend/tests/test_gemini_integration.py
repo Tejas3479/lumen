@@ -80,7 +80,7 @@ async def test_get_gemini_embeddings():
             assert embs == [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
             
             called_url = mock_post.call_args[0][0]
-            assert "gemini-embedding-001:batchEmbedContents" in called_url
+            assert "text-embedding-004:batchEmbedContents" in called_url
             assert "key=test-google-key" in called_url
 
 

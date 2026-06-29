@@ -13,69 +13,24 @@
  * Note: pendingDrafts is populated by Session 19 (PWA / IndexedDB).
  * Until then the banner only shows the offline/online network state.
  */
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
-import api from '@/lib/api';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 
 export default function OfflineSyncBanner() {
-  const isOnline          = useAppStore((s) => s.isOnline);
-  const pendingDrafts     = useAppStore((s) => s.pendingDrafts);
-  const updateDraftStatus = useAppStore((s) => s.updateDraftStatus);
-  const removePendingDraft = useAppStore((s) => s.removePendingDraft);
+  const isOnline      = useAppStore((s) => s.isOnline);
+  const pendingDrafts = useAppStore((s) => s.pendingDrafts);
+  const { syncQueue } = useOfflineQueue();
 
   const pendingCount = pendingDrafts.filter(
     (d) => d.sync_status === 'pending'
   ).length;
 
-  // ── Sync function ───────────────────────────────────────────────
-  const syncDrafts = useCallback(async () => {
-    const pending = pendingDrafts.filter((d) => d.sync_status === 'pending');
-    if (pending.length === 0) return;
-
-    // Optimistically mark all as syncing
-    pending.forEach((d) => updateDraftStatus(d.idempotency_key, 'syncing'));
-
-    try {
-      const payload = pending.map((d) => ({
-        device_idempotency_key: d.idempotency_key,
-        created_locally_at:    d.created_at,
-        title:       d.draft.title ?? d.draft.description.slice(0, 60),
-        description: d.draft.description,
-        category_id: d.draft.category_id ?? null,
-        latitude:    d.draft.latitude    ?? 0,
-        longitude:   d.draft.longitude   ?? 0,
-        address:     d.draft.address     ?? undefined,
-        is_anonymous:  d.draft.is_anonymous  ?? false,
-        is_emergency:  d.draft.is_emergency  ?? false,
-      }));
-
-      const response = await api.post<{
-        synced:  Array<{ key: string; issue_id: string }>;
-        skipped: Array<{ key: string; issue_id: string }>;
-        failed:  Array<{ key: string; error: string }>;
-      }>('/offline/sync', { drafts: payload });
-
-      const { data } = response;
-
-      // Remove successfully uploaded drafts
-      data.synced.forEach((item) => removePendingDraft(item.key));
-      data.skipped.forEach((item) => removePendingDraft(item.key));
-
-      // Mark failures so the user can retry
-      data.failed.forEach((item) =>
-        updateDraftStatus(item.key, 'failed')
-      );
-    } catch {
-      // Roll back to 'pending' so the retry button stays visible
-      pending.forEach((d) => updateDraftStatus(d.idempotency_key, 'failed'));
-    }
-  }, [pendingDrafts, updateDraftStatus, removePendingDraft]);
-
   // ── Auto-sync on reconnect ──────────────────────────────────────
   useEffect(() => {
     if (isOnline && pendingCount > 0) {
-      syncDrafts();
+      syncQueue();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline]);
@@ -126,7 +81,7 @@ export default function OfflineSyncBanner() {
       {/* Manual retry */}
       {isOnline && pendingCount > 0 && (
         <button
-          onClick={syncDrafts}
+          onClick={syncQueue}
           className="flex items-center gap-1 text-xs bg-green-600 text-white px-2.5 py-1 rounded-lg hover:bg-green-700 transition-colors"
           aria-label="Retry uploading pending reports"
         >

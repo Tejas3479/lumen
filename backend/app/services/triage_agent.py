@@ -130,19 +130,111 @@ TRIAGE_TOOLS = [
         }
     }
 ]
+async def _execute_tool(
+    tool_name: str,
+    args: dict,
+    db: AsyncSession = None,
+    issue_lat: float = None,
+    issue_lng: float = None,
+    category: str = None,
+) -> dict:
+    """
+    Executes a triage agent tool call, grounded in real database context.
+    Returns a structured result that Gemini can reason about.
+    """
+    from app.models import Category, Issue
+    from app.services.geo_utils import bounding_box
+
+    if tool_name == "get_department_recommendation":
+        cat_name = args.get("category", category or "other")
+        severity = args.get("severity", "medium")
+        department = DEPARTMENT_MAP.get(cat_name, "BBMP General")
+        
+        # Ground resolution SLA using Category table
+        avg_res_days = 7.0
+        if db:
+            try:
+                cat_result = await db.execute(
+                    select(Category).where(Category.name == cat_name)
+                )
+                cat = cat_result.scalar_one_or_none()
+                if cat:
+                    avg_res_days = cat.avg_resolution_days
+            except Exception as e:
+                logger.warning(f"Error querying category resolution days: {e}")
+
+        # Compute SLA hours based on priority and category avg
+        sla_hours = {
+            "critical": 2,
+            "high": 24,
+            "medium": int(avg_res_days * 24),
+            "low": int(avg_res_days * 24 * 1.5),
+        }.get(severity, int(avg_res_days * 24))
+        
+        return {
+            "department": department,
+            "sla_hours": sla_hours,
+            "contact": f"{department} Control Room",
+            "db_avg_resolution_days": avg_res_days,
+        }
+
+    elif tool_name == "flag_for_emergency_escalation":
+        return {
+            "action": "escalate_emergency",
+            "notified": "All on-duty officials",
+            "sla_override": "2 hours",
+            "reason": args.get("reason", "Urgent safety hazard"),
+        }
+
+    elif tool_name == "request_additional_verification":
+        return {
+            "action": "request_verification",
+            "target_verifications": 3,
+            "reason": args.get("reason", "Low confidence report"),
+        }
+
+    elif tool_name == "mark_as_likely_duplicate":
+        pattern = args.get("pattern_description", "Recurring issue in area")
+        similar_count = 0
+        is_likely_dup = False
+        if db and issue_lat is not None and issue_lng is not None:
+            try:
+                min_lat, max_lat, min_lng, max_lng = bounding_box(issue_lat, issue_lng, 200.0) # 200 meters
+                dup_result = await db.execute(
+                    select(func.count(Issue.id))
+                    .where(
+                        Issue.latitude.between(min_lat, max_lat),
+                        Issue.longitude.between(min_lng, max_lng),
+                        Issue.ai_category == (category or "other"),
+                        Issue.status != "closed"
+                    )
+                )
+                similar_count = dup_result.scalar_one()
+                is_likely_dup = similar_count > 1
+            except Exception as e:
+                logger.warning(f"Error checking duplicate cluster in tool: {e}")
+                
+        return {
+            "action": "flag_duplicate",
+            "pattern": pattern,
+            "similar_issues_nearby_count": similar_count,
+            "is_likely_duplicate": is_likely_dup
+        }
+
+    return {"error": f"Unknown tool: {tool_name}"}
 
 
 async def _call_gemini_with_tools(
     system_prompt: str,
     user_message: str,
+    db: AsyncSession = None,
+    issue_lat: float = None,
+    issue_lng: float = None,
+    category: str = None,
 ) -> tuple[str, list[dict], list[dict]]:
     """
     Calls Gemini 3.5 Flash with function calling (tool use).
     Returns (final_text, tool_calls, reasoning_steps).
-
-    The agent may call multiple tools in a reasoning loop before
-    producing its final recommendation. This implements the
-    ReAct (Reason + Act) pattern.
     """
     api_key = settings.google_api_key or settings.gemini_api_key
     if not api_key:
@@ -164,7 +256,7 @@ async def _call_gemini_with_tools(
             "tools": [{"function_declarations": TRIAGE_TOOLS}],
             "toolConfig": {"function_calling_config": {"mode": "AUTO"}},
             "generationConfig": {
-                "temperature": 0.2,  # Slightly higher than classification for reasoning
+                "temperature": 0.2,
                 "maxOutputTokens": 1024,
             },
         }
@@ -194,7 +286,6 @@ async def _call_gemini_with_tools(
                 })
 
             if not function_calls:
-                # No more tool calls — agent has finished reasoning
                 return text_response, tool_calls, reasoning_steps
 
             # Process tool calls
@@ -212,7 +303,14 @@ async def _call_gemini_with_tools(
                 tool_calls.append({"tool": fn_name, "args": fn_args})
 
                 # Execute tool and get result
-                tool_result = _execute_tool(fn_name, fn_args)
+                tool_result = await _execute_tool(
+                    fn_name,
+                    fn_args,
+                    db=db,
+                    issue_lat=issue_lat,
+                    issue_lng=issue_lng,
+                    category=category,
+                )
                 tool_results.append({
                     "functionResponse": {
                         "name": fn_name,
@@ -227,7 +325,6 @@ async def _call_gemini_with_tools(
                     "result": tool_result,
                 })
 
-            # Add model response and tool results to conversation
             messages.append({"role": "model", "parts": parts})
             messages.append({"role": "user", "parts": tool_results})
 
@@ -241,52 +338,6 @@ async def _call_gemini_with_tools(
             break
 
     return "", tool_calls, reasoning_steps
-
-
-def _execute_tool(tool_name: str, args: dict) -> dict:
-    """
-    Executes a triage agent tool call.
-    Returns a structured result that Gemini can reason about.
-    """
-    if tool_name == "get_department_recommendation":
-        category = args.get("category", "other")
-        severity = args.get("severity", "medium")
-        department = DEPARTMENT_MAP.get(category, "BBMP General")
-        sla_hours = {
-            "critical": 2,
-            "high": 24,
-            "medium": 72,
-            "low": 168,
-        }.get(severity, 72)
-        return {
-            "department": department,
-            "sla_hours": sla_hours,
-            "contact": f"{department} Control Room",
-        }
-
-    elif tool_name == "flag_for_emergency_escalation":
-        return {
-            "action": "escalate_emergency",
-            "notified": "All on-duty officials",
-            "sla_override": "2 hours",
-        }
-
-    elif tool_name == "request_additional_verification":
-        return {
-            "action": "request_verification",
-            "target_verifications": 3,
-            "reason": args.get("reason", "Low confidence report"),
-        }
-
-    elif tool_name == "mark_as_likely_duplicate":
-        return {
-            "action": "flag_duplicate",
-            "pattern": args.get("pattern_description", "Recurring issue in area"),
-        }
-
-    return {"error": f"Unknown tool: {tool_name}"}
-
-
 async def run_triage_agent(
     issue_id: uuid.UUID,
     db: AsyncSession,
@@ -390,7 +441,12 @@ Please analyze this issue and use the available tools to make a triage recommend
 
     # ── REASON + ACT: Run the agent ───────────────────────
     final_text, tool_calls, reasoning_steps = await _call_gemini_with_tools(
-        system_prompt, user_message
+        system_prompt,
+        user_message,
+        db=db,
+        issue_lat=issue.latitude,
+        issue_lng=issue.longitude,
+        category=issue.ai_category,
     )
 
     # ── Parse final recommendation from agent output ──────
@@ -436,10 +492,13 @@ Please analyze this issue and use the available tools to make a triage recommend
                             except (json.JSONDecodeError, ValueError):
                                 break
         if parsed:
-            recommendation.update({
-                k: v for k, v in parsed.items()
-                if k in recommendation
-            })
+            if isinstance(parsed, list) and len(parsed) > 0:
+                parsed = parsed[0]
+            if isinstance(parsed, dict):
+                recommendation.update({
+                    k: v for k, v in parsed.items()
+                    if k in recommendation
+                })
 
     # Override from tool calls if agent explicitly called a tool
     for tc in tool_calls:

@@ -211,6 +211,7 @@ async def _call_openai_vision(
         "model": "gpt-4o",
         "max_tokens": 256,
         "temperature": 0.1,  # Low temperature for consistent classification
+        "response_format": {"type": "json_object"},
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": _build_user_message(description, image_base64)},

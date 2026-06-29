@@ -588,7 +588,7 @@ class OfflineDraft(Base):
         String(128), unique=True, nullable=False
     )
     user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     guest_session_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     draft_json: Mapped[dict] = mapped_column(JSONB, nullable=False)

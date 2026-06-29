@@ -8,10 +8,11 @@
  *  - HomePage         — loads drafts on mount to hydrate appStore
  *  - OfflineSyncBanner — reads pendingDrafts from appStore (count)
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAppStore } from '@/store/appStore';
 import type { PendingDraft } from '@/store/appStore';
 import type { ReportFormDraft } from '@/types';
+import api from '@/lib/api';
 
 const DB_NAME = 'lumen-offline';
 const STORE_NAME = 'drafts';
@@ -197,6 +198,69 @@ export function useOfflineQueue() {
   }, [updateDraftStatus]);
 
   /**
+   * Sync all pending drafts in the queue.
+   */
+  const syncQueue = useCallback(async () => {
+    const pending = useAppStore.getState().pendingDrafts.filter((d) => d.sync_status === 'pending');
+    if (pending.length === 0) return;
+
+    // Optimistically mark all as syncing
+    pending.forEach((d) => updateDraftStatus(d.idempotency_key, 'syncing'));
+
+    try {
+      const payload = pending.map((d) => ({
+        device_idempotency_key: d.idempotency_key,
+        created_locally_at:    d.created_at,
+        title:       d.draft.title ?? d.draft.description.slice(0, 60),
+        description: d.draft.description,
+        category_id: d.draft.category_id ?? null,
+        latitude:    d.draft.latitude    ?? 0,
+        longitude:   d.draft.longitude   ?? 0,
+        address:     d.draft.address     ?? undefined,
+        is_anonymous:  d.draft.is_anonymous  ?? false,
+        is_emergency:  d.draft.is_emergency  ?? false,
+      }));
+
+      const response = await api.post<{
+        synced:  Array<{ key: string; issue_id: string }>;
+        skipped: Array<{ key: string; issue_id: string }>;
+        failed:  Array<{ key: string; error: string }>;
+      }>('/offline/sync', { drafts: payload });
+
+      const { data } = response;
+
+      // Remove successfully uploaded drafts
+      for (const item of data.synced) {
+        await idbDelete(item.key);
+        removePendingDraft(item.key);
+      }
+      for (const item of data.skipped) {
+        await idbDelete(item.key);
+        removePendingDraft(item.key);
+      }
+
+      // Mark failures so the user can retry
+      data.failed.forEach((item) =>
+        updateDraftStatus(item.key, 'failed')
+      );
+    } catch {
+      // Roll back to 'pending' / 'failed' so retry stays visible
+      pending.forEach((d) => updateDraftStatus(d.idempotency_key, 'failed'));
+    }
+  }, [removePendingDraft, updateDraftStatus]);
+
+  // Listen for online events to trigger manual sync immediately
+  useEffect(() => {
+    const handleOnline = () => {
+      syncQueue();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [syncQueue]);
+
+  /**
    * Register Background Sync if supported.
    * Falls back gracefully — OfflineSyncBanner handles manual retry.
    */
@@ -217,7 +281,7 @@ export function useOfflineQueue() {
     queue: useAppStore.getState().pendingDrafts,
     queueCount: offlineQueueCount,
     addToQueue: saveDraft,
-    syncQueue: async () => { /* handled by SW background sync */ },
+    syncQueue,
     clearQueue: () => { /* handled per-draft */ },
 
     // Full API
@@ -228,5 +292,6 @@ export function useOfflineQueue() {
     markDraftSynced,
     markDraftFailed,
     requestBackgroundSync,
+    syncQueue,
   };
 }

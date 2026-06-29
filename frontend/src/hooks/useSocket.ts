@@ -119,6 +119,19 @@ export function useSocket() {
     if (initialized.current) return;
     initialized.current = true;
 
+    const handleOnline = () => {
+      setOnline(true);
+    };
+
+    const handleOffline = () => {
+      setOnline(false);
+      setSocketConnected(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setOnline(navigator.onLine);
+
     const socket = getSocket();
     connectSocket();
 
@@ -320,6 +333,8 @@ export function useSocket() {
 
     // ── Cleanup ─────────────────────────────────────────────────
     return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
