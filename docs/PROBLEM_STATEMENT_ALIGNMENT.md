@@ -26,7 +26,7 @@ Urban India faces a persistent breakdown in the feedback loop between citizens a
 - Guest session (no account required) for one-off reports.
 
 ### 2. AI-Assisted Categorisation and Triage
-- GPT-4V analyses the submitted photo and description, assigns a category (pothole, water leakage, streetlight, garbage, drainage, other), severity (low → critical), and confidence score.
+- Gemini 3.5 Flash analyses the submitted photo and description, assigns a category (pothole, water leakage, streetlight, garbage, drainage, other), severity (low → critical), and confidence score.
 - Emergency issues (critical severity + `is_emergency=True`) trigger an immediate `emergency_alert` socket broadcast to all connected officials.
 - Pre-submit duplicate detection prevents multiple citizens reporting the same pothole independently — they are offered "Support this issue" instead.
 

@@ -36,10 +36,10 @@ Lumen is a hyperlocal civic issue reporting platform designed for Indian cities.
                            │  • Notification push  │
                            └──────────┬────────────┘
                                       │
-                           ┌──────────▼──────────┐
-                           │  OpenAI GPT-4V       │
-                           │  (Gemini fallback)    │
-                           └─────────────────────┘
+                            ┌──────────▼──────────┐
+                            │  Google Gemini 3.5  │
+                            │  (OpenAI fallback)  │
+                            └─────────────────────┘
 ```
 
 ---
@@ -73,7 +73,7 @@ Lumen is a hyperlocal civic issue reporting platform designed for Indian cities.
 - **Socket pub/sub** — Celery workers publish to Redis channels; the FastAPI startup task subscribes and re-emits to Socket.IO rooms.
 
 ### Celery Worker
-- **`categorize_issue_task`** — dispatched on issue creation. Calls OpenAI GPT-4V with image + description; falls back to Gemini Vision then to text-only GPT-4o. Writes result to DB and Redis; publishes `ai_result` to Socket.IO via Redis pub/sub.
+- **`categorize_issue_task`** — dispatched on issue creation. Calls Google Gemini 3.5 Flash with image + description; falls back to OpenAI GPT-4o. Writes result to DB and Redis; publishes `ai_result` to Socket.IO via Redis pub/sub.
 - **`generate_hotspots_task`** — periodic task (hourly) running k-means-style clustering on open issues to identify emerging trouble zones.
 
 ---
@@ -93,7 +93,7 @@ User submits form (multipart/form-data)
 
 (async, seconds later)
   Celery: categorize_issue_task
-    → call GPT-4V (image + description)
+    → call Gemini 3.5 Flash (image + description)
     → parse JSON response
     → update Issue.ai_category, ai_severity, ai_confidence
     → write Redis cache key
@@ -104,15 +104,16 @@ User submits form (multipart/form-data)
 
 ## Deployment Topology
 
-| Service | Container | Port |
-|---------|-----------|------|
-| FastAPI | `lumen-api` | 8000 |
-| Celery Worker | `lumen-worker` | — |
-| PostgreSQL | `lumen-db` | 5432 |
-| Redis | `lumen-redis` | 6379 |
-| Frontend (Nginx) | `lumen-frontend` | 80 / 443 |
+| Service | Container | Port | Description |
+|---------|-----------|------|-------------|
+| FastAPI | `lumen-backend` | 8000 | Backend REST API + Socket.IO server |
+| Celery Worker | `lumen-worker` | — | Background task processing |
+| Celery Beat | `lumen-beat` | — | Background periodic scheduler |
+| PostgreSQL | `lumen-db` | 5432 | Primary data store |
+| Redis | `lumen-redis` | 6379 | Message broker & cache |
+| Frontend | `lumen-frontend` | 5173 | React web application |
 
-All services run as Docker containers orchestrated via `docker-compose.yml`. Production deployment targets a single VPS or small Kubernetes cluster behind an Nginx reverse proxy with TLS termination.
+All services run as Docker containers orchestrated via `docker-compose.yml`. Production deployment targets a single VPS behind an Nginx reverse proxy with TLS termination.
 
 ---
 

@@ -7,7 +7,7 @@ This document honestly catalogues the current limitations of the Lumen v1 platfo
 ## 1. AI Categorisation
 
 ### 1.1 Accuracy on Low-Quality Images
-GPT-4V performs well on clear daytime photos. Accuracy degrades significantly on:
+Gemini 3.5 Flash performs well on clear daytime photos. Accuracy degrades significantly on:
 - Night-time or poorly lit photos
 - Blurry or heavily compressed images
 - Photos submitted from inside moving vehicles
@@ -16,12 +16,12 @@ GPT-4V performs well on clear daytime photos. Accuracy degrades significantly on
 **Mitigation:** Confidence score surfaced to user. Low-confidence results (< 0.5) show "Uncertain — please verify category manually."
 
 ### 1.2 No Fine-Tuning on Indian Civic Data
-The system uses base GPT-4V with a hand-crafted system prompt. There is no fine-tuning on labelled Indian civic issue photographs. Category accuracy may drift from urban-Western training data biases.
+The system uses base Gemini 3.5 Flash with a hand-crafted system prompt. There is no fine-tuning on labelled Indian civic issue photographs. Category accuracy may drift from urban-Western training data biases.
 
 **Planned fix:** See `FUTURE_SCOPE.md §1` — fine-tuning pipeline using correction feedback.
 
 ### 1.3 API Cost at Scale
-GPT-4V image analysis costs approximately $0.003–$0.006 per issue with image. At 10,000 issues/month, this is manageable (~$60/month). At city-scale (1M issues/month), a dedicated fine-tuned model becomes economically necessary.
+Gemini 3.5 Flash image analysis costs approximately $0.0003–$0.0006 per issue with image. At 10,000 issues/month, this is extremely manageable (~$6/month). At city-scale (1M issues/month), a dedicated fine-tuned model becomes economically necessary to ensure 100% localization.
 
 ### 1.4 Fallback Confidence Is 0.0
 When all AI providers fail and the text-only fallback is used, `ai_confidence` is set to 0.0. This is correct but visually abrupt for users. A better UX would distinguish "text-only analysis" from "AI unavailable."

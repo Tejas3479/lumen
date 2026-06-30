@@ -7,12 +7,12 @@ This document describes the planned evolution of Lumen beyond v1. Features are g
 ## 1. AI Pipeline Enhancements
 
 ### 1.1 Fine-Tuned Civic Issue Model
-**Goal:** Reduce GPT-4V API costs by 90% and improve accuracy on Indian civic imagery.
+**Goal:** Reduce Gemini API costs further and improve accuracy on Indian civic imagery.
 
 **Approach:**
 - Collect labelled training data from user corrections (`POST /ai/feedback` logs).
 - Minimum viable dataset: 10,000 labelled image-category-severity triplets.
-- Fine-tune a smaller vision model (e.g., GPT-4o-mini, Gemini Flash) using OpenAI or Google AI Studio fine-tuning pipelines.
+- Fine-tune a smaller vision model (e.g., Gemini Flash) using Google AI Studio fine-tuning pipelines.
 - A/B test fine-tuned vs. base model on incoming submissions.
 - Target: ≥ 95% top-1 category accuracy on held-out Indian civic photos.
 
@@ -23,7 +23,7 @@ This document describes the planned evolution of Lumen beyond v1. Features are g
 
 ### 1.3 Video Analysis
 - Currently, uploaded videos are stored but not analysed.
-- Future: extract keyframes from short videos (≤30s), run GPT-4V on top 3 frames.
+- Future: extract keyframes from short videos (≤30s), run Gemini on top 3 frames.
 - Audio analysis for noise/environmental complaints.
 
 ### 1.4 Severity Auto-Escalation
