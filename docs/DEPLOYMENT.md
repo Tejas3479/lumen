@@ -36,14 +36,19 @@ The `start.sh` script handles everything automatically:
 
 See [`.env.example`](../.env.example) for the complete reference with descriptions.
 
-**Minimum required to start:**
+**Core configuration parameters:**
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
 | `SECRET_KEY` | JWT signing secret (64+ random characters) |
-| `OPENAI_API_KEY` | OpenAI API key for AI categorisation |
+| `GOOGLE_API_KEY` | Google AI Studio API key (Gemini, text-embedding-004, geocoding) |
+| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps JS SDK key |
+| `FIREBASE_CREDENTIALS_PATH` | Path to Firebase credentials JSON file |
+| `FCM_ENABLED` | Toggle Firebase Cloud Messaging (true/false) |
+| `BLUR_VARIANCE_THRESHOLD` | Laplacian variance threshold for image quality checks (default: 100.0) |
+| `CORS_ORIGINS` | Commas-separated list of allowed CORS origins |
 
 All other variables have safe defaults suitable for local development.
 
@@ -78,6 +83,19 @@ volumes:
   postgres_data  # Persistent DB data
   redis_data     # Persistent Redis AOF
   media_data     # Uploaded issue photos/videos
+
+---
+
+## Celery Beat Schedule
+
+Lumen's periodic background jobs are run by the `beat` scheduler container matching the following schedule:
+
+| Task | Schedule | Purpose |
+|---|---|---|
+| `generate_hotspots_task` | Every 6 hours | DBSCAN hotspot prediction and clustering |
+| `run_escalation_check` | Every 30 minutes | SLA breach detection and auto-escalation |
+| `generate_weekly_reports` | Every Monday at 8 AM | Weekly Ward AI journalism narration |
+| `cleanup_guest_users` | Daily at 3 AM | Guest user account purge (DPDP compliance) |
 ```
 
 ---
@@ -128,6 +146,26 @@ docker compose up -d --build backend
 curl http://localhost:8000/health
 curl http://localhost:8000/health/ready
 ```
+
+---
+
+## Health and Monitoring Endpoints
+
+Lumen provides detailed JSON health endpoints for uptime checkers, load balancers, and monitoring tools:
+
+* **GET `/health`**
+  - **Purpose:** Simple ping check to verify the HTTP server is accepting requests.
+  - **Response (200 OK):** `{"status": "healthy", "app": "Lumen"}`
+
+* **GET `/health/ready`**
+  - **Purpose:** Deep readiness check that attempts connectivity to PostgreSQL, Redis, and Celery.
+  - **Response (200 OK):** Detailed status per check. Returns `503 Service Unavailable` on database or broker disconnect.
+
+* **GET `/health/metrics`**
+  - **Purpose:** Exposes live metrics including open issue counts per status, database connection pool statistics, and active workers.
+  - **Response (200 OK):** JSON dict of metrics.
+
+---
 
 ---
 

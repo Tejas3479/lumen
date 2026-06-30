@@ -35,19 +35,19 @@ Within 4 seconds: the `AIExplanationCard` populates with
 
 ---
 
-## 2. Google gemini-embedding-001 — Semantic Duplicate Detection
+## 2. Google text-embedding-004 — Semantic Duplicate Detection
 
 **File:** [duplicate_detector.py](file:///c:/Users/tejas/Downloads/lumen/backend/app/services/duplicate_detector.py)
-**API:** `generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents`
+**API:** `generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents`
 **Key:** `GOOGLE_API_KEY`
 
 **What it does:**
 Before a citizen submits a new report, Lumen checks whether a
 similar issue already exists within 150 metres. It uses Google's
-`gemini-embedding-001` to compute semantic similarity between the new
+`text-embedding-004` to compute semantic similarity between the new
 description and existing issue descriptions.
 
-**Why gemini-embedding-001:**
+**Why text-embedding-004:**
 High-dimensional vectors optimised for Indian-English civic text.
 Understands that "broken road near 80 Feet Road signal" and
 "pothole at the junction on 80 Feet Road" are the same issue.
@@ -149,7 +149,7 @@ The reporter receives a push notification:
 | Google Technology | Purpose | Key Setting | Demo Visible |
 |---|---|---|---|
 | Gemini 3.5 Flash | Issue categorization + reasoning | `GOOGLE_API_KEY` | ✅ Every submission |
-| gemini-embedding-001 | Duplicate detection similarity | `GOOGLE_API_KEY` | ✅ Pre-submit check |
+| text-embedding-004 | Duplicate detection similarity | `GOOGLE_API_KEY` | ✅ Pre-submit check |
 | Google Maps JS | Map tiles + marker rendering | `VITE_GOOGLE_MAPS_API_KEY` | ✅ Homepage |
 | Google Places | Address autocomplete | `VITE_GOOGLE_MAPS_API_KEY` | ✅ Report modal |
 | Google Geocoding | Reverse geocoding (GPS → address) | `GOOGLE_API_KEY` | ✅ Every submission |

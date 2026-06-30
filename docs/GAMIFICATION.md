@@ -35,7 +35,7 @@ Negative points are deducted from `user.points` but cannot reduce total below 0 
 
 ## Level Thresholds
 
-Levels use a progressive threshold formula: Level N requires `N × (N-1) / 2 × 100` total points to reach.
+Lumen uses a progressive set of thresholds for the first 5 levels, followed by a linear progression of 1,000 points per level thereafter.
 
 | Level | Cumulative Points Required | Label |
 |-------|--------------------------|-------|
@@ -44,29 +44,28 @@ Levels use a progressive threshold formula: Level N requires `N × (N-1) / 2 × 
 | 3 | 300 | Contributor |
 | 4 | 700 | Advocate |
 | 5 | 1,500 | Champion |
-| 6 | 2,100 | Expert |
-| 7 | 2,800 | Guardian |
-| … | … | … |
+| 6 | 2,500 | Expert |
+| 7 | 3,500 | Guardian |
+| N (N > 5) | `1,500 + (N - 5) × 1,000` | Elite |
 
 **Level calculation function:**
 
 ```python
+LEVEL_THRESHOLDS = [0, 100, 300, 700, 1500]
+
 def level_for_points(points: int) -> int:
-    level = 1
-    threshold = 0
-    while True:
-        threshold += level * 100  # 100, 200, 300, 400, ...
-        if points < threshold:
-            break
-        level += 1
-    return level
+    for level, limit in enumerate(LEVEL_THRESHOLDS, start=1):
+        if points < limit:
+            return level - 1
+    # Fallback progression for higher levels
+    return len(LEVEL_THRESHOLDS) + (points - LEVEL_THRESHOLDS[-1]) // 1000
 ```
 
 The UI shows progress to the next level as a progress bar:
 ```
 Level 3 ──────────────────────────░░░░ Level 4
          300 pts                        700 pts
-              (450 pts / 400 pts to go)
+              (450 pts / 250 pts to go)
 ```
 
 ---

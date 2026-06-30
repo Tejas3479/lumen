@@ -109,22 +109,39 @@ Preference stored in `localStorage.setItem('a11y.fontSize', 'lg')`.
 
 ## Color-Blind Safety
 
-Map markers and severity indicators use **three combined signals** — colour + shape + label — so no information is conveyed by colour alone (WCAG Success Criterion 1.4.1).
+Map markers use **three combined signals** — color + shape + category emoji — so no information is conveyed by color alone (WCAG Success Criterion 1.4.1). Each status maps to a distinct shape and color:
 
-| Severity | Colour | Shape | Text Label |
-|----------|--------|-------|-----------|
-| Low | 🟢 Green | Circle | "Low" |
-| Medium | 🟡 Yellow | Square | "Med" |
-| High | 🟠 Orange | Triangle | "High" |
-| Critical | 🔴 Red | Star/Burst | "CRIT" |
+| Status | Color | Shape | Text Label |
+|---|---|---|---|
+| `reported` | Gray (#718096) | Square | "Reported" |
+| `verified` | Blue (#3182CE) | Circle | "Verified" |
+| `assigned` | Purple (#805AD5) | Diamond | "Assigned" |
+| `in_progress` | Amber (#D69E2E) | Triangle | "In Progress" |
+| `resolved` | Green (#38A169) | Star | "Resolved" |
+| `disputed` | Red (#E53E3E) | Cross | "Disputed" |
+| `closed` | Dark Slate (#2D3748) | Square | "Closed" |
 
-Status indicators additionally use SVG icons:
-- Reported: dotted border circle
-- Verified: solid circle with checkmark
-- In Progress: spinning arrow
-- Resolved: filled circle with tick
+### Center Emoji Markers
+Each shape marker embeds a category emoji in its center to differentiate types of issues:
+- Pothole: 🕳️
+- Water Leakage: 💧
+- Streetlight: 💡
+- Garbage: 🗑️
+- Drainage: 🌊
+- Road Damage: 🚧
+- Tree Hazard: 🌳
+- Vandalism: ✏️
+- Noise: 🔊
+- Other: ⚠️
 
-Colour palette is verified against Deuteranopia (red-green), Protanopia (red-green), and Tritanopia (blue-yellow) using browser devtools colour simulation.
+### Severity Representation
+Severity levels are communicated textually using high-contrast colored background pills in the issue detail panels:
+* **Low**: Green pill
+* **Medium**: Amber pill
+* **High**: Orange pill
+* **Critical**: Red pill
+
+Color palette is verified against Deuteranopia (red-green), Protanopia (red-green), and Tritanopia (blue-yellow) using browser devtools color simulation.
 
 ---
 

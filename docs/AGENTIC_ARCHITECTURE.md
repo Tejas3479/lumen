@@ -17,6 +17,7 @@ Lumen has three purpose-built AI agents, each with distinct behavior patterns.
 **Trigger:** Activated automatically after every new issue submission.
 **Pattern:** ReAct (Reason + Act) with Gemini function calling.
 **Model:** Google Gemini 3.5 Flash with function calling.
+**Execution limits:** Max 5 reasoning iterations (tool-call execution loops) per triage task to prevent run-away api costs.
 
 ### What it perceives:
 - Full issue details (title, description, category, severity, emergency status)
@@ -114,7 +115,7 @@ The top ward shows a "Weekly Report" section with AI-generated narrative:
 
 ---
 
-## Architecture Diagram
+## Architecture Diagram (Mermaid & ASCII)
 
 ```mermaid
 graph TD
@@ -143,3 +144,103 @@ graph TD
     WardAgent -->|Aggregate Stats| DB
     WardAgent -->|Generate Narrative| DB
 ```
+
+### ASCII Architecture
+
+```text
++-----------------------+     New Issue      +--------------------+
+|  Citizen Submission   | -----------------> |  Lumen PostgreSQL  |
++-----------------------+                    +--------------------+
+                                                        |
+                                                        | Trigger
+                                                        v
+                                             +--------------------+
+                                             |  Issue Triage      |
+                                             |  Agent (ReAct)     |
+                                             +--------------------+
+                                                        |
+                                                        v
+                                             +--------------------+
+                                             |  Tools / Database  |
+                                             +--------------------+
+
++-----------------------+     Every 30m      +--------------------+
+|   Celery Beat Clock   | -----------------> |  Escalation Agent  |
++-----------------------+                    |  (SLA Monitoring)  |
+                                             +--------------------+
+                                                        | Updates DB
+                                                        v
+                                             +--------------------+
+                                             |  Lumen PostgreSQL  |
+                                             +--------------------+
+
++-----------------------+     Monday 8am     +--------------------+
+|   Celery Beat Clock   | -----------------> |  Ward Report Agent |
++-----------------------+                    |  (Data Narration)  |
+                                             +--------------------+
+                                                        | Generates Report
+                                                        v
+                                             +--------------------+
+                                             |  Lumen PostgreSQL  |
+                                             +--------------------+
+```
+
+---
+
+## Why Three Separate Agents?
+
+Lumen decouples its agentic architecture into three distinct services to optimize cost, latency, and reliability:
+1. **Separation of Concerns**: The Triage Agent runs on-demand for incoming issues and requires real-time latency (sub-5s). The Escalation Agent runs periodically and is strictly rule-based for deterministic policy enforcement. The Ward Report Agent is run weekly in batch mode and handles high token volume aggregates.
+2. **Compute Optimization**: Running ReAct LLM loops on periodic checks is computationally wasteful and expensive. By reserving LLM usage for triage and weekly aggregates, we maintain high system performance at minimal API costs.
+3. **Auditability**: Having separate schemas and tables (`triage_reports`, `ward_reports`, `status_history`) allows platform operators to audit AI actions independently of database-level state changes.
+
+---
+
+## Agent Status API
+
+Administrators can monitor the live activity and metrics of all three agents using the Status API:
+
+`GET http://localhost:8000/ai/agents/status`
+
+### Example Response
+```json
+{
+  "agents": [
+    {
+      "id": "triage_agent",
+      "name": "Issue Triage Agent",
+      "status": "active",
+      "pattern": "ReAct (Reason + Act) with Gemini Function Calling",
+      "model": "gemini-3.5-flash",
+      "metrics": {
+        "total_triaged_issues": 142
+      }
+    },
+    {
+      "id": "escalation_agent",
+      "name": "Proactive Escalation Agent",
+      "status": "active",
+      "pattern": "Scheduled SLA Monitoring",
+      "model": "rule-based",
+      "frequency": "every 30 minutes",
+      "metrics": {
+        "active_escalations": 3
+      }
+    },
+    {
+      "id": "ward_report_agent",
+      "name": "Weekly Ward Report Agent",
+      "status": "active",
+      "pattern": "Scheduled Data Narration with Structured Output",
+      "model": "gemini-3.5-flash",
+      "frequency": "every Monday at 8 AM",
+      "metrics": {
+        "total_reports_generated": 14,
+        "last_report_generated_at": "2026-06-29T08:00:00Z"
+      }
+    }
+  ]
+}
+```
+
+---

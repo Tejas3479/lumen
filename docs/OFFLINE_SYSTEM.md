@@ -47,37 +47,29 @@ Cache Duration: 7 days
 
 ## IndexedDB Schema: Draft Queue
 
-Offline drafts are stored in IndexedDB under the database name `lumen-offline-v1`, object store `drafts`.
+Offline drafts are stored in IndexedDB under the database name `lumen-offline`, object store `drafts`.
 
 ```typescript
-interface OfflineDraft {
-  // Idempotency key — generated on form open, never changes
-  device_idempotency_key: string;   // UUID v4, e.g. "3f7a..."
-
-  // Submission data (mirrors POST /issues form fields)
-  title: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  address?: string;
-  ward?: string;
-  severity: "low" | "medium" | "high" | "critical";
-  is_anonymous: boolean;
-  is_emergency: boolean;
-  category_id?: string;
-
-  // Offline metadata
-  created_locally_at: string;  // ISO timestamp of when draft was captured
-  synced: boolean;             // false = pending, true = submitted
-  synced_issue_id?: string;    // populated after successful sync
-  media_blobs?: Blob[];        // captured photos before upload
+interface IDBDraftRecord {
+  key: string;           // = idempotency_key generated on form open via crypto.randomUUID()
+  created_at: string;    // ISO timestamp of when draft was captured
+  sync_status: 'pending' | 'syncing' | 'failed';
+  payload: {             // Mirrors POST /issues form fields
+    title?: string;
+    description: string;
+    category_id?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    address?: string;
+    is_anonymous?: boolean;
+    is_emergency?: boolean;
+  };
 }
 ```
 
 **IndexedDB indexes:**
-- `device_idempotency_key` (unique) — for rapid lookup and deduplication
-- `synced` — for querying all pending drafts
-- `created_locally_at` — for ordering draft queue display
+- `key` (unique) — primary keypath used for lookup and deduplication
+- `sync_status` — for checking if draft is pending, currently syncing, or failed
 
 ---
 
@@ -125,32 +117,47 @@ The Background Sync API allows the browser to defer sync operations to when conn
 // Register sync when a draft is saved offline
 async function registerOfflineSync() {
   const sw = await navigator.serviceWorker.ready;
-  await sw.sync.register('lumen-draft-sync');
+  await sw.sync.register('lumen-offline-sync');
 }
 
 // Service worker sync event handler
 self.addEventListener('sync', async (event: SyncEvent) => {
-  if (event.tag === 'lumen-draft-sync') {
+  if (event.tag === 'lumen-offline-sync') {
     event.waitUntil(syncPendingDrafts());
   }
 });
 
 async function syncPendingDrafts() {
-  const db = await openDB('lumen-offline-v1');
-  const pending = await db.getAllFromIndex('drafts', 'synced', false);
+  const db = await openDB('lumen-offline');
+  const pending = await db.getAll('drafts');
   
   if (pending.length === 0) return;
   
-  const response = await fetch('/offline/sync', {
+  const response = await fetch('/api/offline/sync', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': getStoredToken() },
-    body: JSON.stringify({ drafts: pending }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      drafts: pending.map((d) => ({
+        device_idempotency_key: d.key,
+        created_locally_at:    d.created_at,
+        title:       d.payload.title || d.payload.description.slice(0, 60),
+        description: d.payload.description,
+        category_id: d.payload.category_id || null,
+        latitude:    d.payload.latitude || 0,
+        longitude:   d.payload.longitude || 0,
+        address:     d.payload.address || undefined,
+        is_anonymous:  d.payload.is_anonymous || false,
+        is_emergency:  d.payload.is_emergency || false,
+        severity:    'medium',
+      })),
+    }),
   });
   
   const result = await response.json();
-  // Mark synced drafts as synced=true in IndexedDB
-  for (const item of result.synced) {
-    await db.put('drafts', { ...pending.find(d => d.device_idempotency_key === item.key), synced: true, synced_issue_id: item.issue_id });
+  // Remove successfully synced or skipped drafts from IndexedDB
+  const synced = [...(result.synced || []), ...(result.skipped || [])];
+  for (const item of synced) {
+    await db.delete('drafts', item.key);
   }
 }
 ```

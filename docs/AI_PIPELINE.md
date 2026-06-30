@@ -25,7 +25,7 @@ POST /issues (FastAPI)
                 │                   └─ on error → Default fallback result (confidence=0.0)
                 ├─ 4. Parse JSON response
                 ├─ 5. Update Issue row in DB
-                │     (ai_category, ai_severity, ai_confidence, ai_explanation, ai_summary)
+                │     (ai_category, ai_severity, ai_confidence, ai_explanation, ai_summary, ai_reasoning, ai_alternatives)
                 ├─ 6. Write Redis cache: lumen:ai_result:{issue_id} (TTL 5 min)
                 └─ 7. Publish ai_result event to Redis pub/sub channel
                         │
@@ -51,9 +51,9 @@ Lumen uses Google AI as the primary intelligence layer:
 - Prompt: Chain-of-thought with 3 few-shot examples
 - JSON mode (responseMimeType): Forces clean JSON output without markdown fences
 
-### Primary Embeddings: Google gemini-embedding-001
+### Primary Embeddings: Google text-embedding-004
 - Used for: Semantic duplicate detection
-- Why gemini-embedding-001: Optimised for English + Indian language text — better than all-MiniLM-L6-v2 for civic descriptions that mix English with local place names and street terms
+- Why text-embedding-004: Optimised for English + Indian language text — better than sentence-transformers for civic descriptions that mix English with local place names and street terms
 
 ### Fallbacks (OpenAI)
 - If Gemini is unavailable: GPT-4o handles classification
@@ -130,7 +130,7 @@ Severity (use ONLY one of these exact values):
 
 ### Response Contract
 
-The AI is instructed to return **only** valid JSON with no markdown wrapping:
+The AI is instructed to return **only** valid JSON matching the schema, with explicit chain-of-thought reasoning and alternatives considered:
 
 ```json
 {
@@ -139,6 +139,10 @@ The AI is instructed to return **only** valid JSON with no markdown wrapping:
   "confidence": 0.91,
   "explanation": "Road surface shows a 45cm depression with exposed aggregate material on a high-traffic lane.",
   "summary": "Large pothole on road",
+  "reasoning": "Visible sub-base exposure and crack patterns around the depression suggest active asphalt erosion from heavy traffic.",
+  "alternative_categories": {
+    "road_damage": 0.12
+  },
   "is_emergency": false
 }
 ```
@@ -159,13 +163,15 @@ The AI is instructed to return **only** valid JSON with no markdown wrapping:
      "confidence": 0.0,
      "explanation": "AI classification failed — please review manually.",
      "summary": "Classification unavailable",
+     "reasoning": "",
+     "alternative_categories": {},
      "is_emergency": false
    }
    ```
 4. **Category not in allowed list**: Coerce to `"other"`.
 5. **Severity not in allowed list**: Coerce to `"medium"`.
 
-This ensures the database always receives a valid, parseable AI result even when the model misbehaves.
+This ensures the database always receives a valid, parseable AI result with all reasoning and alternatives fields populated even when the model misbehaves.
 
 ---
 
@@ -217,6 +223,16 @@ FastAPI startup (asyncio task):
 ```
 
 This pattern is used for all Celery-generated events: `ai_result`, `leaderboard_update`, `hotspot_update`.
+
+---
+
+## Frontend Polling Fallback (60-Second Timeout)
+
+To handle cases where WebSocket connections fail or are blocked by client firewalls:
+1. When a client submits an issue, it listens to the `ai_result` Socket.IO event.
+2. Simultaneously, a fallback timer starts.
+3. If no WebSocket event is received within **60 seconds**, the frontend falls back to polling `GET /ai/status/{issue_id}`.
+4. It polls every 5 seconds up to 3 times. If the classification is still pending, the UI displays a "AI analysis temporarily busy" state, allowing manual category entry.
 
 ---
 

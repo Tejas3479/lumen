@@ -10,13 +10,32 @@
 
 ---
 
+## 👨‍⚖️ For Hackathon Judges
+
+Open: **http://localhost:5173/?judge=true**
+
+The guided feature tour will start automatically on the map centered on **Bengaluru**, walking you through:
+1. 📸 AI-powered issue reporting (Google Gemini 3.5 Flash)
+2. 🤖 Autonomous Triage Agent (Gemini Function Calling)
+3. ✓ Community verification system (hard/soft)
+4. 📶 Offline-first PWA
+5. 🛡️ Admin dashboard with AI recommendations
+
+* **AI Agents Status Endpoint:** `GET http://localhost:8000/ai/agents/status`  
+* **Admin Login:** `admin@lumen.civic` / `admin123`  
+* **Citizen Login:** `priya@example.com` / `citizen123`  
+
+To restart the tour: add `?judge=true` to any URL.
+
+---
+
 ## Quick Start (5 steps)
 
 **Prerequisites:** Docker Desktop, Docker Compose v2, a Google AI Studio API key (primary) or OpenAI API key (fallback).
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-org/lumen.git
+git clone https://github.com/Tejas3479/lumen.git
 cd lumen
 
 # 2. Create your environment file
@@ -44,25 +63,6 @@ chmod +x start.sh
 
 ---
 
-## 👨‍⚖️ For Hackathon Judges
-
-Open: **http://your-deployment-url/?judge=true**
-
-The guided feature tour will start automatically, walking you through:
-1. 📸 AI-powered issue reporting (Google Gemini)
-2. 🤖 Autonomous Triage Agent (Gemini Function Calling)
-3. ✓ Community verification system
-4. 📶 Offline-first PWA
-5. 🛡️ Admin dashboard with AI recommendations
-
-**AI Agents status:** GET /ai/agents/status  
-**Admin login:** admin@lumen.civic / admin123  
-**Citizen login:** priya@example.com / citizen123  
-
-To restart the tour: add ?judge=true to any URL.
-
----
-
 ## What You Can Demo
 
 1. **Report an issue** — tap the FAB, take a photo, confirm location, submit
@@ -73,6 +73,14 @@ To restart the tour: add ?judge=true to any URL.
 6. **Gamification** — earn points and badges, climb the leaderboard
 7. **Predictive hotspots** — `/predictions` shows DBSCAN clusters on the heatmap
 8. **Offline mode** — throttle network to Offline, submit a report, reconnect — it syncs
+
+---
+
+## Agent Status API
+Lumen exposes a real-time health and metrics endpoint for all AI agents:
+`GET http://localhost:8000/ai/agents/status`
+
+This returns live metadata, frequency schedules, patterns, and run metrics (e.g., active escalations, reports generated) for the Triage, Proactive Escalation, and Weekly Ward Report Agents.
 
 ---
 
@@ -96,13 +104,26 @@ To restart the tour: add ?judge=true to any URL.
 | Database | PostgreSQL 16, Alembic migrations |
 | Queue | Celery 5 + Redis 7 |
 | Real-time | Socket.IO (python-socketio + socket.io-client) |
-| AI | Google Gemini 3.5 Flash (primary), OpenAI GPT-4o (fallback) |
+| AI | Google Gemini 3.5 Flash (primary), OpenAI GPT-4o (fallback), `text-embedding-004` (duplicate detection) |
+| Push Notifications | Firebase Admin SDK (`firebase-admin`), Web Push (`pywebpush`) |
 | Frontend | React 18, TypeScript 5, Vite 5 |
 | State | Zustand 4 |
-| Maps | Leaflet.js 1.9 + react-leaflet |
+| Maps | Leaflet.js 1.9 + `@googlemaps/js-api-loader` + `react-leaflet` |
 | Auth | JWT (python-jose) + bcrypt |
 | Offline | Service Worker + IndexedDB + Background Sync API |
 | Tests | pytest + pytest-asyncio + Playwright |
+
+---
+
+## Environment Variables
+
+The following key configuration values are defined and documented in `.env.example`:
+* `GOOGLE_API_KEY`: API key for Google Gemini model generation, text embeddings, and reverse geocoding.
+* `VITE_GOOGLE_MAPS_API_KEY`: Google Maps Platform JS API key.
+* `FIREBASE_CREDENTIALS_PATH`: Path to private credentials JSON for Firebase Admin SDK.
+* `FCM_ENABLED`: Toggles Firebase push notifications (true/false).
+* `BLUR_VARIANCE_THRESHOLD`: Laplacian variance threshold below which photos are rejected as blurry (default: 100.0).
+* `CORS_ORIGINS`: Allowed CORS origin list.
 
 ---
 

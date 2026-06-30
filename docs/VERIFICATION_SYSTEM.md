@@ -110,11 +110,11 @@ if existing.scalar_one_or_none():
 ```
 
 ### 3. Terminal Status Guard
-Issues in `resolved`, `closed`, or `disputed` states cannot receive new verifications:
+Issues in `resolved` or `closed` states cannot receive new verifications:
 
 ```python
-if issue.status in ("resolved", "closed", "disputed"):
-    raise ValidationError("Cannot verify a resolved, closed, or disputed issue")
+if issue.status in ("resolved", "closed"):
+    raise ValidationError("Cannot verify a resolved or closed issue")
 ```
 
 ### 4. Guest Verifiers

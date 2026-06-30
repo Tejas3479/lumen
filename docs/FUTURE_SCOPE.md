@@ -67,14 +67,19 @@ This document describes the planned evolution of Lumen beyond v1. Features are g
 - Sentinel or Redis Cluster for HA.
 - Separate Redis instances for Celery broker, cache, and Socket pub/sub.
 
-### 3.4 CDN for Media
-- Upload media to S3-compatible object storage (MinIO self-hosted, or AWS S3).
-- Serve via CloudFront CDN.
-- Eliminate local disk dependency.
+### 3.4 Google Cloud Storage (GCS) for Media
+- Migrate from local filesystem media storage to Google Cloud Storage (GCS) or S3-compatible object storage.
+- Serve uploaded issue photos and videos via Google Cloud CDN to optimize mobile load times.
+- Eliminate single-node disk space constraints.
 
 ### 3.5 Materialised Leaderboard
 - Celery periodic task refreshes a `leaderboard_cache` table every 15 minutes.
 - `GET /gamification/leaderboard` reads from cache — O(1) query regardless of user count.
+
+### 3.6 PostgreSQL pgvector for Database-Level Similarity
+- Replace the in-memory TF-IDF and Python-level semantic similarity comparisons with PostgreSQL `pgvector`.
+- Store Gemini/text-embedding-004 vectors directly in the database.
+- Utilize HNSW vector indexing to run sub-millisecond semantic duplicate check queries at scale.
 
 ---
 
@@ -143,5 +148,18 @@ This document describes the planned evolution of Lumen beyond v1. Features are g
 - Social share button to post to WhatsApp/Twitter: "I helped fix a pothole in Ward 12! #Lumen"
 
 ### 7.4 NGO and RWA Integration
-- Resident Welfare Associations can register as verified organisations.
-- RWA-filed issues get a "verified organisation" badge and higher initial trust weight.
+- Register Resident Welfare Associations as verified organizations.
+- RWA-filed issues get a "verified organization" badge and higher initial trust weight.
+
+---
+
+## 8. Next-Gen Integration Channels
+
+### 8.1 WhatsApp Reporting Bot
+- Build a lightweight WhatsApp Business API integration bot.
+- Citizens can snap a photo of an issue and send it via WhatsApp along with their current GPS pin.
+- The backend automatically parses the photo and location, creates a draft issue in the database, and replies to the user with a tracking link.
+
+### 8.2 IoT Sensor Integration
+- Connect city IoT devices (e.g. smart water meters, smart streetlights, trash bin fill sensors) to the Lumen reporting pipeline.
+- Automatically file civic issues on sensor anomalies (e.g. drop in water line pressure or bin fill level > 90%) to preempt citizen reports.

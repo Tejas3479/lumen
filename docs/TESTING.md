@@ -200,6 +200,55 @@ See `test_geo_utils.py` for isolated Haversine tests.
 9. Official re-resolves → status: resolved
 10. Issue closed
 
+### `test_celery_db.py`
+**Scope:** Celery task DB sessions  
+**Tests:**
+- Celery tasks have access to a clean DB session
+- Tasks rollback automatically on database errors
+
+### `test_sanitization.py`
+**Scope:** Content sanitization (`sanitization.py`)  
+**Tests:**
+- HTML tags are stripped from title and description fields
+- SQL-injection-like patterns are escaped safely
+
+### `test_escalation_agent.py`
+**Scope:** SLA Escalation Agent (`escalation_agent.py`)  
+**Tests:**
+- Stalled issues breach SLA and trigger escalations
+- Escalation logs are recorded in the database
+- SLA breaches trigger push alerts to officials
+
+### `test_gemini_integration.py`
+**Scope:** Gemini API wrapper and client  
+**Tests:**
+- Direct Gemini Flash calls return structured category predictions
+- Response coercion corrects malformed JSON payloads
+
+### `test_geocoding_fcm.py`
+**Scope:** Reverse geocoding and push notifications  
+**Tests:**
+- Mocked Google Geocoding API converts coordinates to address strings
+- FCM payload formatting wraps payloads correctly
+
+### `test_guest_deletion.py`
+**Scope:** Guest user purge task (`maintenance.py`)  
+**Tests:**
+- Guest user accounts and linked session data are deleted after 24h
+- Registered user accounts are not affected by the purge
+
+### `test_triage_agent.py`
+**Scope:** ReAct Triage Agent (`triage_agent.py`)  
+**Tests:**
+- The agent loop executes up to 5 iterations maximum
+- Recommended department and priority are written to DB triage report
+
+### `test_ward_report_agent.py`
+**Scope:** Weekly Ward Report Agent (`ward_report_agent.py`)  
+**Tests:**
+- Average resolution time query returns real DB avg epochs
+- Narratives are generated and saved per active ward weekly
+
 ---
 
 ## Backend Integration Test Inventory

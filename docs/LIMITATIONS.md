@@ -121,4 +121,20 @@ The codebase references a `notification_service.py` for push notifications, but 
 Web Push (FCM/APNS) integration is scaffolded in `notification_service.py` but not activated. Users receive real-time updates only while the app is open.
 
 ### 7.3 Predictive Hotspots Not Production-Tuned
-The predictive hotspot generator uses a simple k-means-inspired cluster detection without temporal weighting. Hotspot predictions have not been validated against historical resolution data.
+The predictive hotspot generator uses a simple k-means-inspired cluster detection without temporal weighting. Hotspot predictions have not been validated against historical resolution data. Furthermore, new wards with fewer than 3 reported issues are excluded from hotspot calculations to prevent noise.
+
+---
+
+## 8. Enterprise & Platform
+
+### 8.1 Partially Mocked Triage Agent Tools
+While the ReAct loop executes successfully, some database tools utilized by the Triage Agent (e.g. looking up departmental resolution history or agent logs) return deterministic mocked values instead of querying live tables. Full database integration is deferred to v2.
+
+### 8.2 Video Single-Frame Analysis
+ Lacking a full video segmentation pipeline, video issue submissions only have their first keyframe checked by the AI for categorization. The remainder of the video is stored for human inspection but ignored during automated classification.
+
+### 8.3 Firebase Setup Prerequisite
+Push notifications require a Google Firebase Project service account JSON file, referenced by `FIREBASE_CREDENTIALS_PATH` and enabled via `FCM_ENABLED=true`. In default local developer builds, this feature is disabled.
+
+### 8.4 Bulk Update Schema Limits
+The `PATCH /admin/issues/bulk` endpoint does not enforce a maximum size limit on the array of issue IDs in Pydantic schema validation. Batching too many updates at once can lead to slow transactions.
