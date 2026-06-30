@@ -498,22 +498,27 @@ async def _run_categorization(
         import redis as redis_sync
 
         r = redis_sync.from_url(settings.redis_url, decode_responses=True)
+        socket_payload = {
+            "issue_id": issue_id,
+            "ai_category": result["category"],
+            "ai_severity": result["severity"],
+            "ai_confidence": result["confidence"],
+            "ai_explanation": result["explanation"],
+            "ai_summary": result["summary"],
+            "ai_reasoning": result.get("reasoning", ""),
+            "ai_alternatives": result.get("alternative_categories", {}),
+        }
         r.setex(
             f"lumen:ai_result:{issue_id}",
             300,  # 5-minute TTL — frontend should poll within this window
-            json.dumps({
-                "issue_id": issue_id,
-                "ai_category": result["category"],
-                "ai_severity": result["severity"],
-                "ai_confidence": result["confidence"],
-                "ai_explanation": result["explanation"],
-                "ai_summary": result["summary"],
-                "ai_reasoning": result.get("reasoning", ""),            # NEW
-                "ai_alternatives": result.get("alternative_categories", {}),  # NEW
-            }),
+            json.dumps(socket_payload),
         )
         r.close()
         logger.info("AI result published to Redis", extra={"issue_id": issue_id})
+
+        # Broadcast via Socket.IO bridge
+        from app.sockets.events import publish_to_socket
+        publish_to_socket(settings.redis_url, "ai_result", socket_payload)
     except Exception as e:
         # Redis publish failure is non-fatal — DB was already updated
         logger.warning("Could not publish AI result to Redis", extra={"error": str(e)})

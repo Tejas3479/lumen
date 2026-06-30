@@ -61,7 +61,7 @@ export default function HomePage() {
 
   // Load categories for the report modal
   useEffect(() => {
-    apiGet<Category[]>('/categories').then(setCategories).catch(() => {});
+    apiGet<Category[]>('/analytics/categories').then(setCategories).catch(() => {});
   }, []);
 
   // Load offline drafts from IndexedDB on mount (Session 19)

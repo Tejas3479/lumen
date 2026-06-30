@@ -127,7 +127,7 @@ export default function AdminIssueQueue({ onIssueSelect }: Props) {
 
   const exportCSV = async () => {
     try {
-      const response = await fetch('/admin/export?format=csv', {
+      const response = await fetch('/api/admin/export?format=csv', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Export failed');

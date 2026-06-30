@@ -37,22 +37,23 @@ POINT_VALUES = {
 }
 
 # ── Level thresholds ──────────────────────────────────────────
+LEVEL_THRESHOLDS = [0, 100, 300, 700, 1500]
+
 # level_for_points(pts): find max level where threshold ≤ pts
 def level_for_points(points: int) -> int:
     """Returns the level a user should be at for their point total."""
-    level = 1
-    threshold = 0
-    while True:
-        threshold += level * 100
-        if points < threshold:
-            break
-        level += 1
-    return level
+    for level, limit in enumerate(LEVEL_THRESHOLDS, start=1):
+        if points < limit:
+            return level - 1
+    # Fallback progression for higher levels
+    return len(LEVEL_THRESHOLDS) + (points - LEVEL_THRESHOLDS[-1]) // 1000
 
 
 def points_for_next_level(current_level: int) -> int:
     """Returns points needed to reach the next level."""
-    return current_level * (current_level + 1) // 2 * 100
+    if current_level < len(LEVEL_THRESHOLDS):
+        return LEVEL_THRESHOLDS[current_level]
+    return LEVEL_THRESHOLDS[-1] + (current_level - len(LEVEL_THRESHOLDS) + 1) * 1000
 
 
 # ── Badge definitions ─────────────────────────────────────────

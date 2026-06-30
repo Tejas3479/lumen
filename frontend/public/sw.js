@@ -119,7 +119,7 @@ async function syncOfflineDrafts() {
   if (drafts.length === 0) return;
 
   try {
-    const response = await fetch('/offline/sync', {
+    const response = await fetch('/api/offline/sync', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

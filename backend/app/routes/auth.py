@@ -112,7 +112,7 @@ async def logout(user=Depends(get_current_user)):
     return None
 
 
-@router.post("/users/me/fcm-token", status_code=204)
+@router.post("/me/fcm-token", status_code=204)
 async def register_fcm_token(
     payload: dict,
     db: DB,

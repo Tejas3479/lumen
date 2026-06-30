@@ -10,7 +10,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   X, ChevronRight, ChevronLeft, Camera, AlertTriangle,
-  MapPin, Check, Trash2,
+  MapPin, Check, Trash2, Mic, MicOff,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useIssueStore } from '@/store/issueStore';
@@ -67,14 +67,79 @@ const MAX_TITLE = 120;
 const MAX_DESC = 2000;
 
 function generateDraftId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `draft_${crypto.randomUUID()}`;
+  }
   return `draft_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
+
 
 export default function ReportIssueModal({ isOpen, onClose, categories }: Props) {
   const { location } = useGeolocation();
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const { supportIssue } = useIssuesApi();
   const { saveDraft, requestBackgroundSync } = useOfflineQueue();
+
+  // ── Speech Recognition State ────────────────────────────────
+  const [isListening, setIsListening] = useState(false);
+  const speechSupported = typeof window !== 'undefined' && 
+    Boolean((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!speechSupported) return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = 'en-IN'; // Indian English as specified in mandate
+
+    rec.onresult = (event: any) => {
+      const lastIndex = event.results.length - 1;
+      const transcript = event.results[lastIndex][0].transcript;
+      setDraft((d) => ({
+        ...d,
+        description: d.description + (d.description ? ' ' : '') + transcript.trim(),
+      }));
+    };
+
+    rec.onerror = (event: any) => {
+      if (event.error !== 'aborted') {
+        console.error('Speech recognition error:', event.error);
+        toast.error('Voice input error. Please type your description.');
+      }
+      setIsListening(false);
+    };
+
+    rec.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = rec;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, [speechSupported]);
+
+  const toggleListening = useCallback(() => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast.success('Listening… speak now 🎙️', { id: 'listening-toast' });
+      } catch (err) {
+        // Recognition already started or error
+      }
+    }
+  }, [isListening]);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -182,8 +247,13 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
         idempotency_key: generateDraftId(),
       });
       setMediaPreviews([]);
+    } else {
+      if (recognitionRef.current && isListening) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isListening]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -529,9 +599,39 @@ export default function ReportIssueModal({ isOpen, onClose, categories }: Props)
 
               {/* Description */}
               <div>
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  Description *
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Description *
+                  </label>
+                  {speechSupported ? (
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
+                        isListening
+                          ? 'bg-red-500 text-white animate-pulse'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                      }`}
+                      aria-label={isListening ? "Stop listening" : "Start voice input"}
+                    >
+                      {isListening ? (
+                        <>
+                          <MicOff size={10} />
+                          <span>Listening…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic size={10} />
+                          <span>Voice input</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="text-[9px] text-slate-400" title="Voice input is not supported in this browser. Please type.">
+                      Voice unsupported
+                    </span>
+                  )}
+                </div>
                 <textarea
                   id="report-description"
                   placeholder="Describe the issue: location details, how long it's been there, who it affects..."

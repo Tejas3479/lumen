@@ -201,6 +201,12 @@ def generate_hotspots_task(self):
             "Hotspot generation task completed",
             extra={"count": len(hotspots)},
         )
+        
+        # Broadcast updated hotspots via the Socket.IO Redis bridge
+        from app.sockets.events import publish_to_socket
+        from app.config import settings
+        publish_to_socket(settings.redis_url, "hotspot_update", {"hotspots": hotspots})
+
         return {"status": "ok", "hotspots_generated": len(hotspots)}
     except Exception as exc:
         logger.error(
