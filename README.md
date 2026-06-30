@@ -147,7 +147,7 @@ lumen/
 │   ├── app/
 │   │   ├── main.py              # FastAPI + Socket.IO ASGI entrypoint
 │   │   ├── config.py            # Settings (pydantic-settings)
-│   │   ├── models.py            # SQLAlchemy ORM — 17 tables
+│   │   ├── models.py            # SQLAlchemy ORM — 19 tables
 │   │   ├── schemas.py           # Pydantic request/response models
 │   │   ├── routes/              # API endpoints (one file per domain)
 │   │   │   ├── auth.py          # /auth + /users
@@ -161,17 +161,25 @@ lumen/
 │   │   │   ├── media.py         # /media (upload, delete)
 │   │   │   └── offline.py       # /offline (batch sync + status)
 │   │   ├── services/            # Business logic (no HTTP)
-│   │   │   ├── issue_service.py
-│   │   │   ├── verification_service.py
-│   │   │   ├── gamification.py
 │   │   │   ├── ai_categorizer.py
+│   │   │   ├── auth_service.py
+│   │   │   ├── duplicate_detector.py
+│   │   │   ├── escalation_agent.py
+│   │   │   ├── gamification.py
+│   │   │   ├── geo_utils.py
+│   │   │   ├── issue_service.py
+│   │   │   ├── maintenance.py
+│   │   │   ├── moderation.py
 │   │   │   ├── notification.py
+│   │   │   ├── predictive.py
 │   │   │   ├── spam_detector.py
-│   │   │   └── duplicate_detector.py
+│   │   │   ├── triage_agent.py
+│   │   │   ├── verification_service.py
+│   │   │   └── ward_report_agent.py
 │   │   └── sockets/
 │   │       └── events.py        # 13 Socket.IO event emitters + Redis bridge
 │   ├── alembic/                 # Database migrations
-│   ├── tests/                   # pytest test suite (16 files)
+│   ├── tests/                   # pytest test suite (22 files)
 │   ├── seed_data.py             # Demo dataset loader
 │   ├── requirements.txt
 │   └── Dockerfile
@@ -183,12 +191,12 @@ lumen/
 │       ├── hooks/               # useSocket, useApi, useOffline, etc.
 │       ├── lib/                 # Axios client, Socket.IO client
 │       └── types/               # Shared TypeScript types
-├── docs/                        # 14 documentation files
+├── docs/                        # 16 documentation files
 │   ├── ARCHITECTURE.md
 │   ├── API_REFERENCE.md
 │   ├── DEPLOYMENT.md
 │   └── ...
-├── docker-compose.yml           # Full stack (7 services)
+├── docker-compose.yml           # Full stack (6 services)
 ├── start.sh                     # One-command startup script
 ├── .env.example                 # All env vars documented
 └── LICENSE
