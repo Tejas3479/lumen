@@ -75,6 +75,14 @@ export default function OnboardingTour() {
   const [step, setStep] = useState(0);
   const [isJudgeMode, setIsJudgeMode] = useState(false);
 
+  const getActionHref = (href: string) => {
+    if (href.startsWith('/api/')) {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      return `${baseUrl}${href.substring(4)}`;
+    }
+    return href;
+  };
+
   useEffect(() => {
     // Check for ?demo=true or ?judge=true URL params
     const params = new URLSearchParams(window.location.search);
@@ -179,7 +187,7 @@ export default function OnboardingTour() {
           {/* Optional action link */}
           {current.action && (
             <a
-              href={current.action.href}
+              href={getActionHref(current.action.href)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-blue-600 font-medium mb-4 hover:underline"
