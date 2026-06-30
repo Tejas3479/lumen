@@ -4,6 +4,7 @@ services:
     name: lumen-backend
     runtime: docker
     dockerfilePath: backend/Dockerfile
+    dockerContext: backend
     plan: free
     envVars:
       - key: DATABASE_URL
