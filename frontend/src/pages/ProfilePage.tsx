@@ -10,6 +10,7 @@ import type { User as UserType } from '@/types';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import toast from 'react-hot-toast';
+import { useAuthApi } from '@/hooks/useApi';
 
 interface UserStats {
   user_id: string;
@@ -89,6 +90,14 @@ export default function ProfilePage() {
   const { user: currentUser, token, updateUser } = useUserStore();
   const navigate = useNavigate();
 
+  const { login, register } = useAuthApi();
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const viewingOwnProfile = !profileUserId || profileUserId === currentUser?.id;
   const targetUserId = profileUserId || currentUser?.id;
 
@@ -142,20 +151,180 @@ export default function ProfilePage() {
   };
 
   if (!currentUser && !profileUserId) {
+    const handleLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      const res = await login({ email, password });
+      setIsSubmitting(false);
+      if (res) {
+        navigate('/profile');
+      }
+    };
+
+    const handleRegister = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      const res = await register({
+        email,
+        password,
+        username,
+        display_name: displayNameInput || username,
+      });
+      setIsSubmitting(false);
+      if (res) {
+        navigate('/profile');
+      }
+    };
+
+    const handleQuickLogin = async (roleEmail: string, rolePass: string) => {
+      setIsSubmitting(true);
+      const res = await login({ email: roleEmail, password: rolePass });
+      setIsSubmitting(false);
+      if (res) {
+        navigate('/profile');
+      }
+    };
+
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <User size={40} className="text-slate-200 dark:text-slate-700 mx-auto" />
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Sign in to see your profile
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
+            Lumen Citizen Portal
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+            Sign in to track impact, see badges, and view leaderboard.
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
-          >
-            Back to map
-          </button>
         </div>
+
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
+          <div className="bg-white dark:bg-slate-900 py-8 px-4 shadow-xl rounded-3xl border border-slate-100 dark:border-slate-800/85 sm:px-10">
+            {/* Tabs */}
+            <div className="flex border-b border-slate-100 dark:border-slate-800 mb-6">
+              <button
+                onClick={() => setAuthTab('login')}
+                className={`flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-colors ${
+                  authTab === 'login'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-slate-400 dark:text-slate-500'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setAuthTab('register')}
+                className={`flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-colors ${
+                  authTab === 'register'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-slate-400 dark:text-slate-500'
+                }`}
+              >
+                Register
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={authTab === 'login' ? handleLogin : handleRegister}>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 text-sm border border-slate-250 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="name@example.com"
+                />
+              </div>
+
+              {authTab === 'register' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 text-sm border border-slate-250 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="username"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={displayNameInput}
+                      onChange={(e) => setDisplayNameInput(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 text-sm border border-slate-250 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="My Display Name"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 text-sm border border-slate-250 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-md text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? 'Processing...' : authTab === 'login' ? 'Sign In' : 'Register'}
+              </button>
+            </form>
+
+            {/* Quick Demo Login */}
+            <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6">
+              <span className="block text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-3 text-center">
+                ⚡ Quick Demo Sign In
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleQuickLogin('admin@lumen.civic', 'admin123')}
+                  className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-850 text-left transition-all hover:scale-[1.02]"
+                >
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">🛡️ Log In as Admin</span>
+                  <span className="text-[10px] text-slate-400 block">Full control & dashboard</span>
+                </button>
+                <button
+                  onClick={() => handleQuickLogin('priya@example.com', 'citizen123')}
+                  className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-850 text-left transition-all hover:scale-[1.02]"
+                >
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">👤 Log In as Citizen</span>
+                  <span className="text-[10px] text-slate-400 block">Track points, badges & map</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => navigate('/')}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Back to Map
+              </button>
+            </div>
+
+          </div>
+        </div>
+        <MobileBottomNav />
       </div>
     );
   }
