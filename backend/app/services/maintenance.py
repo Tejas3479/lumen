@@ -60,7 +60,8 @@ def cleanup_guest_users(self):
                 raise e
 
     try:
-        deleted = asyncio.run(_cleanup())
+        from app.utils.async_utils import run_async_task
+        deleted = run_async_task(_cleanup())
         return {"status": "ok", "deleted": deleted}
     except Exception as exc:
         logger.error(

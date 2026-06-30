@@ -246,26 +246,12 @@ export default function MapView({
           .map(([status, cfg]) => (
             <div key={status} className="flex items-center gap-1.5 mb-1 last:mb-0">
               <svg
-                width="12"
-                height="12"
+                width="14"
+                height="14"
                 viewBox="0 0 28 28"
                 aria-hidden="true"
-              >
-                {/* dangerouslySetInnerHTML equivalent via raw SVG */}
-                {/* Using a foreign element trick isn't needed — use image */}
-              </svg>
-              {/* Render actual colored shape */}
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 10,
-                  height: 10,
-                  background: cfg.color,
-                  borderRadius: cfg.shape === 'circle' ? '50%' : cfg.shape === 'diamond' ? 0 : '2px',
-                  transform: cfg.shape === 'diamond' ? 'rotate(45deg)' : undefined,
-                  flexShrink: 0,
-                }}
-                aria-hidden="true"
+                dangerouslySetInnerHTML={{ __html: getShapeSVG(cfg.shape, cfg.color, 28) }}
+                style={{ flexShrink: 0 }}
               />
               <span className="text-gray-600 text-[11px]">{cfg.label}</span>
             </div>

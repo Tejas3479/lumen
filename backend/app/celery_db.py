@@ -33,7 +33,8 @@ async def run_with_db(coro_factory):
     """
     Helper: runs an async coroutine that needs a DB session.
     Usage in Celery tasks:
-        result = asyncio.run(run_with_db(lambda db: my_async_function(db)))
+        from app.utils.async_utils import run_async_task
+        result = run_async_task(run_with_db(lambda db: my_async_function(db)))
     """
     async with get_celery_session() as db:
         try:

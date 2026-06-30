@@ -575,7 +575,8 @@ def run_triage_task(self, issue_id: str):
             return result
 
     try:
-        result = asyncio.run(_run())
+        from app.utils.async_utils import run_async_task
+        result = run_async_task(_run())
         logger.info("Triage task completed", extra={"issue_id": issue_id})
         return result
     except Exception as exc:

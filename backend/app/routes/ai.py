@@ -166,6 +166,24 @@ async def ai_feedback(
 
     await db.flush()
 
+    # Emit real-time issue_updated socket event
+    from app.sockets.events import emit_issue_updated
+    updates = {"user_correction": True}
+    if payload.corrected_category and "category" in locals() and category:
+        updates["category_id"] = str(category.id)
+        updates["category"] = {
+            "id": str(category.id),
+            "name": category.name,
+            "display_name": category.display_name,
+            "icon": category.icon,
+            "color": category.color,
+        }
+        updates["ai_category"] = payload.corrected_category
+    if payload.corrected_severity:
+        updates["severity"] = payload.corrected_severity
+        updates["ai_severity"] = payload.corrected_severity
+    await emit_issue_updated(str(payload.issue_id), updates)
+
     logger.info(
         "AI correction logged",
         extra={

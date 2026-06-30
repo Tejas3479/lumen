@@ -195,7 +195,8 @@ def generate_hotspots_task(self):
     Uses the shared Celery engine (one pool per worker process, not per task).
     """
     try:
-        hotspots = asyncio.run(run_with_db(generate_hotspots))
+        from app.utils.async_utils import run_async_task
+        hotspots = run_async_task(run_with_db(generate_hotspots))
         logger.info(
             "Hotspot generation task completed",
             extra={"count": len(hotspots)},

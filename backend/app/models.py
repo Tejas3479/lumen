@@ -747,6 +747,7 @@ class WardReport(Base):
     __table_args__ = (
         Index("ix_ward_reports_ward", "ward"),
         Index("ix_ward_reports_week_start", "week_start"),
+        Index("ix_ward_reports_generated_at", "generated_at"),
     )
 
 

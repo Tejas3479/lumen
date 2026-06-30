@@ -228,7 +228,8 @@ def run_escalation_check():
     Finds stalled issues and escalates them autonomously.
     """
     try:
-        result = asyncio.run(_run_escalation_check())
+        from app.utils.async_utils import run_async_task
+        result = run_async_task(_run_escalation_check())
         logger.info(
             "Escalation agent complete",
             extra={

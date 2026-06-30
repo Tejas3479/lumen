@@ -188,10 +188,15 @@ async def create_issue_endpoint(
         "latitude": issue.latitude,
         "longitude": issue.longitude,
         "title": issue.title,
+        "description": issue.description,
         "severity": issue.severity,
         "is_emergency": issue.is_emergency,
         "category": full_issue.category.name if full_issue.category else "other",
         "status": "reported",
+        "created_at": issue.created_at.isoformat(),
+        "vote_count": 0,
+        "verification_count": 0,
+        "media": [],
     }
     await emit_new_issue(socket_data)
     if issue.is_emergency and settings.emergency_alerts_enabled:
@@ -366,6 +371,36 @@ async def update_issue_endpoint(
 ):
     """Update title, description, category, severity. Reporter or admin only."""
     issue = await update_issue(issue_id, payload, db, current_user)
+
+    # Emit real-time issue_updated socket event
+    updates = {}
+    if payload.title is not None:
+        updates["title"] = payload.title
+    if payload.description is not None:
+        updates["description"] = payload.description
+    if payload.severity is not None:
+        updates["severity"] = payload.severity
+    if payload.category_id is not None:
+        from sqlalchemy import select
+        from app.models import Category
+        updates["category_id"] = str(payload.category_id)
+        cat_result = await db.execute(
+            select(Category).where(Category.id == payload.category_id)
+        )
+        category = cat_result.scalar_one_or_none()
+        if category:
+            updates["category"] = {
+                "id": str(category.id),
+                "name": category.name,
+                "display_name": category.display_name,
+                "icon": category.icon,
+                "color": category.color,
+            }
+
+    if updates:
+        from app.sockets.events import emit_issue_updated
+        await emit_issue_updated(str(issue_id), updates)
+
     return IssueOut.model_validate(issue)
 
 

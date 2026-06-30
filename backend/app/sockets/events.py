@@ -50,6 +50,14 @@ async def emit_new_issue(issue_data: dict) -> None:
     logger.info("Socket emitted", extra={"event": LumenEvents.NEW_ISSUE, "issue_id": issue_data.get("id")})
 
 
+async def emit_issue_updated(issue_id: str, updates: dict) -> None:
+    """Broadcast issue updates (e.g. AI correction or official edits) to all clients and issue room."""
+    payload = {"issue_id": issue_id, "updates": updates}
+    await sio.emit(LumenEvents.ISSUE_UPDATED, payload)
+    await emit_to_issue_room(issue_id, LumenEvents.ISSUE_UPDATED, payload)
+    logger.info("Socket emitted", extra={"event": LumenEvents.ISSUE_UPDATED, "issue_id": issue_id})
+
+
 async def emit_status_update(issue_id: str, new_status: str, history_entry: dict) -> None:
     """
     Broadcast status change.

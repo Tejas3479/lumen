@@ -550,8 +550,9 @@ def categorize_issue_task(
         description: Issue description text
     """
     try:
-        # asyncio.run() starts a fresh event loop in the Celery worker process
-        result = asyncio.run(_run_categorization(issue_id, image_path, description))
+        from app.utils.async_utils import run_async_task
+        # run_async_task() starts/uses the event loop safely
+        result = run_async_task(_run_categorization(issue_id, image_path, description))
         logger.info(
             "AI categorization task completed successfully",
             extra={

@@ -262,7 +262,8 @@ def generate_weekly_reports():
     Generates plain-language narrative reports for all active wards.
     """
     try:
-        result = asyncio.run(_generate_all_ward_reports())
+        from app.utils.async_utils import run_async_task
+        result = run_async_task(_generate_all_ward_reports())
         logger.info("Ward report agent complete", extra=result)
         return result
     except Exception as exc:

@@ -125,7 +125,19 @@ async function syncOfflineDrafts() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        drafts: drafts.map((d) => d.payload),
+        drafts: drafts.map((d) => ({
+          device_idempotency_key: d.key,
+          created_locally_at:    d.created_at,
+          title:       d.payload.title || d.payload.description.slice(0, 60),
+          description: d.payload.description,
+          category_id: d.payload.category_id || null,
+          latitude:    d.payload.latitude || 0,
+          longitude:   d.payload.longitude || 0,
+          address:     d.payload.address || undefined,
+          is_anonymous:  d.payload.is_anonymous || false,
+          is_emergency:  d.payload.is_emergency || false,
+          severity:    'medium',
+        })),
       }),
     });
 
