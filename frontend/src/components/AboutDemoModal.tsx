@@ -64,6 +64,24 @@ export default function AboutDemoModal({ isOpen, onClose }: Props) {
             </div>
           </div>
 
+          {/* Demo walkthrough */}
+          <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl p-4 border border-blue-100/50 dark:border-blue-900/30">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 mb-2.5 flex items-center gap-1.5">
+              <span>📋 Step-by-Step Demo Walkthrough</span>
+            </h3>
+            <ol className="list-decimal list-inside space-y-2 text-xs text-gray-600 dark:text-gray-300">
+              <li className="leading-relaxed">
+                <strong className="text-gray-800 dark:text-white">Report:</strong> Click the red <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded font-bold font-mono">+</span> button, describe a civic issue (e.g. "Pothole on Residency Rd"), and submit. Watch Gemini categorize it instantly!
+              </li>
+              <li className="leading-relaxed">
+                <strong className="text-gray-800 dark:text-white">Verify:</strong> Log in as <span className="font-mono text-slate-500 dark:text-slate-400">priya@example.com</span>, select the pin on the map, and click <span className="font-semibold text-slate-700 dark:text-slate-200">Verify</span> to add community trust.
+              </li>
+              <li className="leading-relaxed">
+                <strong className="text-gray-800 dark:text-white">Resolve:</strong> Log in as <span className="font-mono text-slate-500 dark:text-slate-400">admin@lumen.civic</span>, go to the Admin Dashboard (link in bottom nav), assign the issue to a ward team, and resolve it.
+              </li>
+            </ol>
+          </div>
+
           {/* AI Agents architecture */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
