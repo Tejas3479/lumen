@@ -183,3 +183,21 @@ VITE_API_URL=http://localhost:8000
 VITE_WS_URL=ws://localhost:8000
 VITE_GOOGLE_MAPS_API_KEY=your-key-here
 ```
+
+---
+
+## Google Cloud Platform — Production Infrastructure
+
+The complete Lumen platform is deployed entirely on Google Cloud Platform using production-ready services:
+
+| Google Service | Purpose |
+|----------------|---------|
+| **Cloud Run** | Serverless hosting for Backend and Frontend |
+| **Cloud SQL** | Managed PostgreSQL 15 |
+| **Memorystore** | Redis Cache + Celery Message Broker |
+| **Cloud Storage** | Object Storage for User-Uploaded Media |
+| **Artifact Registry** | Secure Docker Image Hosting |
+
+### Live URL:
+`https://lumen-frontend-651466414804-asia-south1.run.app` (Live URL after Cloud Run deployment completes)
+
